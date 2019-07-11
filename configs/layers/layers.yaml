@@ -1,0 +1,67 @@
+# encompasses the baseline
+
+_primary_layer: !!set &primary_layer
+  ? rgba
+
+_primary: !!set &primary
+  ? rgb
+  ? beauty
+  ? primary
+  <<: *primary_layer
+
+crypto_asset: !!set &crypto_asset
+  ? crypto_asset
+  ? crypto_asset00
+  ? crypto_asset01
+  ? crypto_asset02
+
+crypto_material: !!set &crypto_material
+  ? crypto_material
+  ? crypto_material00
+  ? crypto_material01
+  ? crypto_material02
+
+crypto_object: !!set &crypto_object
+  ? crypto_object
+  ? crypto_object00
+  ? crypto_object01
+  ? crypto_object02
+
+crypto: !!set &crypto
+  <<: *crypto_asset
+  <<: *crypto_object
+  <<: *crypto_material
+
+p: !!set &position
+  ? P
+  ? Pref
+
+pref: !!set &pref
+  ? Pref
+
+uv: !!set &uv
+  ? uv
+  ? motion
+
+deep: !!set &deep
+  ? deep
+
+non_color: !!set
+  <<: *crypto
+  <<: *deep
+  <<: *uv
+  <<: *position
+  <<: *pref
+
+# channel mappings
+
+_uv: !!set
+  <<: *uv
+
+_xyz: !!set
+  <<: *position
+  <<: *pref
+
+_vec4: !!set
+  <<: *primary_layer
+  <<: *crypto

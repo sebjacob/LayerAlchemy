@@ -1,0 +1,72 @@
+_alpha:
+- alpha
+_alpha_exr:
+- A
+_uv:
+- u
+- v
+_uv_exr:
+- u
+- v
+_vec3:
+- red
+- green
+- blue
+_vec3_exr:
+- B
+- G
+- R
+_vec4:
+- red
+- green
+- blue
+- alpha
+_vec4_exr:
+- A
+- B
+- G
+- R
+_xyz:
+- X
+- Y
+- Z
+_xyz_exr:
+- X
+- Y
+- Z
+_z:
+- Z
+_z_exr:
+- Z
+channels_alpha:
+- alpha
+channels_blue:
+- blue
+channels_green:
+- green
+channels_red:
+- red
+exr_channels_deep_minimal:
+- A
+- Z
+exr_deep_channels:
+- A
+- Z
+- Zback
+- deep.B
+- deep.G
+- deep.R
+exr_topology:
+- _alpha_exr
+- _uv_exr
+- _vec3_exr
+- _vec4_exr
+- _xyz_exr
+- _z_exr
+topology:
+- _alpha
+- _uv
+- _vec3
+- _vec4
+- _xyz
+- _z
