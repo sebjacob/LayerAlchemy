@@ -1,0 +1,37 @@
+# stock nuke layer names
+
+uv: !!set &nuke_uv
+  ? forward
+  ? backward
+  ? motion
+  ? uv_extra
+
+matte: !!set &nuke_matte
+  ? mask
+  ? mask_planartrack
+  ? mask_splinewarp
+  ? rotopaint_mask
+
+depth: !!set &nuke_depth
+  ? depth
+  ? depth_extra
+
+disparity: !!set &nuke_disparity
+  ? disparityl
+  ? disparityr
+
+_alpha: !!set &nuke_alpha
+  <<: *nuke_matte
+
+_vec2: !!set
+  <<: *nuke_uv
+
+_z: !!set
+  ? depth
+
+non_color: !!set
+  <<: *nuke_matte
+  <<: *nuke_disparity
+  <<: *nuke_alpha
+  <<: *nuke_uv
+  <<: *nuke_depth

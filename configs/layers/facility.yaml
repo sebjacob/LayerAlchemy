@@ -1,0 +1,108 @@
+# custom layer conventions, like custom facility tokens or workflows
+
+mp: !!set &mp_layer
+ ? mp
+
+mptd: !!set &mptd_layer
+  ? mptd
+
+_rotopaint_degrain_layer: !!set &rotopaint_degrain_layer
+  ? rotopaint_degrain
+
+_rotopaint_grain_layer: !!set &rotopaint_grain_layer
+  ? rotopaint_grain
+
+rotopaint: !!set &rotopaint
+  <<: *rotopaint_degrain_layer
+  <<: *rotopaint_grain_layer
+  ? rotopaint
+  ? platepremult
+  ? rotopaint_mask
+
+roto: !!set &roto_layer
+  ? roto
+
+_grain_layer: !!set &grain_layer
+  ? grain
+
+matte: !!set &matte
+  ? m
+  ? matte
+  ? rotopaint_mask
+  <<: *roto_layer
+
+puz: !!set &puz
+ ? puz
+
+non_color: !!set
+  <<: *matte
+  <<: *puz
+
+#  'step layers' are layers that can be appended with pipeline steps suffixes
+_step: !!set &_step
+  ? P
+  ? uv
+
+#  'asset layers' are layers that can potentially have a user defined name as a suffix
+_asset: !!set &_asset
+  ? Pref
+  ? puz
+  ? mptd
+  ? mp
+  ? rotopaint
+  ? roto
+  ? motion
+
+# 'sanitizable layers' are layers that should be changed, for techical reasons.
+#  example : !!set 'uv' clashes with nuke's internal naming, so this is why it is also defined in _step
+_sanitizable: !!set
+  ? P
+  ? uv
+
+depth: !!set &depth
+# depth layers invented by facility
+  ? Z2
+
+deep: !!set
+# deep layers invented by facility
+  ? deep_scanline
+
+# this category is for layers that are known, or should be considered <layer>_<type or increment>
+_prefix: !!set
+  <<: *_step
+  <<: *_asset
+  <<: *roto_layer
+  <<: *matte
+
+
+#  layer categories that group layer categories
+_global: !!set
+  ? diffuse
+  ? direct
+  ? indirect
+  ? specular
+  ? sss
+  ? transmission
+  ? volume
+  ? mp
+  ? mptd
+
+_facility_exr_package_names: !!set
+  ? multipart
+  ? deep_scanline
+
+#  layer category for declaring (red,green,blue,alpha) type topology for these layers
+
+
+_alpha: !!set &alpha
+  <<: *roto_layer
+  <<: *matte
+  <<: *depth
+
+_vec3: !!set
+  <<: *puz
+
+_vec4: !!set
+  <<: *mp_layer
+  <<: *mptd_layer
+  ? platepremult

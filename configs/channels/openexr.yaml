@@ -1,0 +1,38 @@
+# openexr channels
+_alpha_exr:
+  - A
+
+_z_exr:
+  - Z
+
+_uv_exr:
+  - u
+  - v
+
+_vec3_exr:
+  - B
+  - G
+  - R
+
+_vec4_exr:
+ - A
+ - B
+ - G
+ - R
+
+_xyz_exr:
+  - X
+  - Y
+  - Z
+# these are the bare minimal channels for a valid deepexr file
+exr_channels_deep_minimal:
+  - A
+  - Z
+# this is the full deep channel set
+exr_deep_channels:
+  - A
+  - Z
+  - Zback
+  - deep.B
+  - deep.G
+  - deep.R

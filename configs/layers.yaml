@@ -1,0 +1,413 @@
+_alpha:
+- AA_inv_density
+- Z
+- Z2
+- cputime
+- depth
+- m
+- mask
+- mask_planartrack
+- mask_splinewarp
+- matte
+- raycount
+- roto
+- rotopaint_mask
+- volume_z
+_asset:
+- Pref
+- motion
+- mp
+- mptd
+- puz
+- roto
+- rotopaint
+_facility_exr_package_names:
+- deep_scanline
+- multipart
+_global:
+- diffuse
+- direct
+- indirect
+- mp
+- mptd
+- specular
+- sss
+- transmission
+- volume
+_grain_layer:
+- grain
+_prefix:
+- P
+- Pref
+- id
+- m
+- matte
+- motion
+- mp
+- mptd
+- puz
+- roto
+- rotopaint
+- rotopaint_mask
+- uv
+_primary:
+- beauty
+- primary
+- rgb
+- rgba
+_primary_layer:
+- rgba
+_rotopaint_degrain_layer:
+- rotopaint_degrain
+_rotopaint_grain_layer:
+- rotopaint_grain
+_sanitizable:
+- P
+- uv
+_step:
+- P
+- uv
+_uv:
+- motion
+- motionvector
+- uv
+_vec2:
+- backward
+- forward
+- motion
+- uv_extra
+_vec3:
+- ID
+- albedo
+- background
+- coat
+- coat_albedo
+- coat_direct
+- coat_indirect
+- diffuse
+- diffuse_albedo
+- diffuse_direct
+- diffuse_indirect
+- direct
+- emission
+- id
+- indirect
+- light_group_1
+- light_group_2
+- light_group_3
+- light_group_4
+- light_group_5
+- light_group_6
+- light_group_7
+- light_group_8
+- light_group_9
+- light_group_10
+- light_group_11
+- light_group_12
+- light_group_13
+- light_group_14
+- light_group_15
+- light_group_16
+- opacity
+- puz
+- reflection
+- refraction
+- shadow
+- shadow_diff
+- sheen
+- sheen_direct
+- sheen_indirect
+- single_scatter
+- specular
+- specular_albedo
+- specular_direct
+- specular_indirect
+- sss
+- sss_albedo
+- sss_direct
+- sss_indirect
+- transmission
+- transmission_albedo
+- transmission_direct
+- transmission_indirect
+- volume
+- volume_albedo
+- volume_direct
+- volume_indirect
+- volume_opacity
+_vec4:
+- beauty
+- crypto_asset
+- crypto_asset00
+- crypto_asset01
+- crypto_asset02
+- crypto_material
+- crypto_material00
+- crypto_material01
+- crypto_material02
+- crypto_object
+- crypto_object00
+- crypto_object01
+- crypto_object02
+- mp
+- mptd
+- platepremult
+- primary
+- rgba
+_xyz:
+- N
+- P
+- Pref
+_z:
+- depth
+albedo:
+- albedo
+- coat_albedo
+- diffuse_albedo
+- specular_albedo
+- sss_albedo
+- transmission_albedo
+- volume_albedo
+arnold_debug:
+- AA_inv_density
+- cputime
+- raycount
+base_color:
+- diffuse_albedo
+beauty_direct_indirect:
+- direct
+- indirect
+beauty_shading:
+- coat_direct
+- coat_indirect
+- diffuse_direct
+- diffuse_indirect
+- emission
+- reflection
+- refraction
+- sheen_direct
+- sheen_indirect
+- single_scatter
+- specular_direct
+- specular_indirect
+- sss_direct
+- sss_indirect
+- transmission_direct
+- transmission_indirect
+- volume_direct
+- volume_indirect
+beauty_shading_global:
+- background
+- coat
+- diffuse
+- sheen
+- specular
+- sss
+- transmission
+- volume
+coat:
+- coat
+- coat_albedo
+- coat_direct
+- coat_indirect
+crypto:
+- crypto_asset
+- crypto_asset00
+- crypto_asset01
+- crypto_asset02
+- crypto_material
+- crypto_material00
+- crypto_material01
+- crypto_material02
+- crypto_object
+- crypto_object00
+- crypto_object01
+- crypto_object02
+crypto_asset:
+- crypto_asset
+- crypto_asset00
+- crypto_asset01
+- crypto_asset02
+crypto_material:
+- crypto_material
+- crypto_material00
+- crypto_material01
+- crypto_material02
+crypto_object:
+- crypto_object
+- crypto_object00
+- crypto_object01
+- crypto_object02
+deep:
+- deep
+- deep_scanline
+depth:
+- Z
+- Z2
+- depth
+- depth_extra
+diffuse:
+- diffuse
+- diffuse_albedo
+- diffuse_direct
+- diffuse_indirect
+direct:
+- coat_direct
+- diffuse_direct
+- sheen_direct
+- specular_direct
+- sss_direct
+- transmission_direct
+- volume_direct
+disparity:
+- disparityl
+- disparityr
+id:
+- ID
+- id
+indirect:
+- coat_indirect
+- diffuse_indirect
+- sheen_indirect
+- specular_indirect
+- sss_indirect
+- transmission_indirect
+- volume_indirect
+light_group:
+- light_group_1
+- light_group_2
+- light_group_3
+- light_group_4
+- light_group_5
+- light_group_6
+- light_group_7
+- light_group_8
+- light_group_9
+- light_group_10
+- light_group_11
+- light_group_12
+- light_group_13
+- light_group_14
+- light_group_15
+- light_group_16
+matte:
+- Z
+- depth
+- m
+- mask
+- mask_planartrack
+- mask_splinewarp
+- matte
+- roto
+- rotopaint_mask
+- shadow_matte
+- volume_opacity
+- volume_z
+mp:
+- mp
+mptd:
+- mptd
+non_color:
+- AA_inv_density
+- ID
+- N
+- P
+- Pref
+- Z
+- backward
+- cputime
+- crypto_asset
+- crypto_asset00
+- crypto_asset01
+- crypto_asset02
+- crypto_material
+- crypto_material00
+- crypto_material01
+- crypto_material02
+- crypto_object
+- crypto_object00
+- crypto_object01
+- crypto_object02
+- deep
+- depth
+- depth_extra
+- disparityl
+- disparityr
+- forward
+- id
+- m
+- mask
+- mask_planartrack
+- mask_splinewarp
+- matte
+- motion
+- motionvector
+- puz
+- raycount
+- roto
+- rotopaint_mask
+- shadow_matte
+- uv
+- uv_extra
+- volume_opacity
+- volume_z
+p:
+- P
+- Pref
+pref:
+- Pref
+puz:
+- puz
+roto:
+- roto
+rotopaint:
+- platepremult
+- rotopaint
+- rotopaint_degrain
+- rotopaint_grain
+- rotopaint_mask
+secondary:
+- emission
+- reflection
+- refraction
+- single_scatter
+- sss_direct
+- sss_indirect
+shadow:
+- shadow
+- shadow_diff
+- shadow_matte
+sheen:
+- sheen
+- sheen_albedo
+- sheen_direct
+- sheen_indirect
+specular:
+- coat
+- coat_direct
+- coat_indirect
+- specular
+- specular_direct
+- specular_indirect
+sss:
+- sss
+- sss_albedo
+- sss_direct
+- sss_indirect
+transmission:
+- transmission
+- transmission_albedo
+- transmission_direct
+- transmission_indirect
+uv:
+- backward
+- forward
+- motion
+- motionvector
+- uv
+- uv_extra
+volume:
+- volume
+- volume_albedo
+- volume_direct
+- volume_indirect

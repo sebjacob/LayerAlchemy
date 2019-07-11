@@ -1,0 +1,28 @@
+site_name : LayerAlchemy Documentation
+repo_url: https://github.com/sebjacob/LayerAlchemy
+site_description : LayerAlchemy documentation
+site_author : Sebastien Jacob
+use_directory_urls : false
+docs_dir : 'docs'
+markdown_extensions:
+  - admonition
+
+theme: # https://github.com/mkdocs/mkdocs-bootswatch
+    name : mkdocs
+    custom_dir : theme/slate
+
+nav :
+    - Home : index.md
+    - Concept : core.md
+    - Nuke plugins :
+      - GradeBeauty.md
+      - GradeBeautyLayerSet.md
+      - GradeLayerSet.md
+      - FlattenLayerSet.md
+      - RemoveLayerSet.md
+      - MultiplyLayerSet.md
+    - Dev Guide :
+      - dev_guide.md
+      - configs_and_topology.md
+      - tools.md
+    - About : about.md

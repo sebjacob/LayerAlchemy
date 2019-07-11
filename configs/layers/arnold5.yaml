@@ -1,0 +1,217 @@
+
+arnold_debug: !!set &arnold_debug
+  ? cputime
+  ? raycount
+  ? AA_inv_density
+
+albedo: !!set &arnold_albedo
+  ? albedo
+  ? diffuse_albedo
+  ? coat_albedo
+  ? specular_albedo
+  ? sss_albedo
+  ? transmission_albedo
+  ? volume_albedo
+
+coat: !!set &arnold_coat
+  ? coat
+  ? coat_albedo
+  ? coat_direct
+  ? coat_indirect
+
+diffuse: !!set &arnold_diffuse
+  ? diffuse
+  ? diffuse_albedo
+  ? diffuse_direct
+  ? diffuse_indirect
+
+sheen: !!set &arnold_sheen
+  ? sheen
+  ? sheen_albedo
+  ? sheen_direct
+  ? sheen_indirect
+
+sss: !!set &arnold_sss
+  ? sss
+  ? sss_albedo
+  ? sss_direct
+  ? sss_indirect
+
+transmission: !!set &arnold_transmission
+  ? transmission
+  ? transmission_albedo
+  ? transmission_direct
+  ? transmission_indirect
+
+volume: !!set &arnold_volume
+  ? volume
+  ? volume_albedo
+  ? volume_direct
+  ? volume_indirect
+
+light_group: !!set &arnold_light_group
+  ? light_group_1
+  ? light_group_2
+  ? light_group_3
+  ? light_group_4
+  ? light_group_5
+  ? light_group_6
+  ? light_group_7
+  ? light_group_8
+  ? light_group_9
+  ? light_group_10
+  ? light_group_11
+  ? light_group_12
+  ? light_group_13
+  ? light_group_14
+  ? light_group_15
+  ? light_group_16
+
+specular: !!set &arnold_specular
+  ? coat
+  ? coat_direct
+  ? coat_indirect
+  ? specular
+  ? specular_direct
+  ? specular_indirect
+
+direct: !!set &arnold_direct
+  ? coat_direct
+  ? diffuse_direct
+  ? sheen_direct
+  ? specular_direct
+  ? sss_direct
+  ? transmission_direct
+  ? volume_direct
+
+indirect: !!set &arnold_indirect
+  ? coat_indirect
+  ? diffuse_indirect
+  ? sheen_indirect
+  ? specular_indirect
+  ? sss_indirect
+  ? transmission_indirect
+  ? volume_indirect
+
+base_color: !!set &arnold_color_layer
+  ? diffuse_albedo
+
+secondary: !!set &arnold_secondary
+  ? emission
+  ? reflection
+  ? refraction
+  ? single_scatter
+  ? sss_direct
+  ? sss_indirect
+
+id: !!set &arnold_id
+  ? id
+  ? ID
+
+deep: !!set &arnold_deep
+  ? deep
+
+depth: !!set &arnold_depth
+  ? Z
+  ? depth
+
+uv: !!set &arnold_uv
+  ? uv
+  ? motionvector
+
+p: !!set &arnold_p
+  ? P
+
+pref: !!set &arnold_pref
+  ? Pref
+
+shadow: !!set &arnold_shadow
+  ? shadow_matte
+  ? shadow_diff
+  ? shadow
+
+matte: !!set &arnold_matte
+  <<: *arnold_depth
+  ? shadow_matte
+  ? volume_z
+  ? volume_opacity
+
+
+beauty_shading: !!set &arnold_beauty_shading
+  <<: *arnold_secondary
+  ? coat_direct
+  ? coat_indirect
+  ? diffuse_direct
+  ? diffuse_indirect
+  ? sheen_direct
+  ? sheen_indirect
+  ? specular_direct
+  ? specular_indirect
+  ? sss_direct
+  ? sss_indirect
+  ? transmission_direct
+  ? transmission_indirect
+  ? volume_direct
+  ? volume_indirect
+
+beauty_shading_global: !!set &arnold_beauty_shading_global
+  ? background
+  ? coat
+  ? diffuse
+  ? specular
+  ? sss
+  ? transmission
+  ? volume
+  ? sheen
+
+beauty_direct_indirect: !!set &arnold_beauty_direct_indirect
+  ? direct
+  ? indirect
+
+non_color: !!set &arnold_non_color
+  <<: *arnold_id
+  <<: *arnold_uv
+  <<: *arnold_depth
+  <<: *arnold_deep
+  <<: *arnold_p
+  <<: *arnold_pref
+  <<: *arnold_debug
+  <<: *arnold_matte
+  ? N
+
+_prefix: !!set
+  ? id
+  #? light_group
+
+# channel mappings
+
+_alpha: !!set &arnold_alpha
+  <<: *arnold_depth
+  <<: *arnold_debug
+  ? volume_z
+
+_uv: !!set
+  <<: *arnold_uv
+
+_vec3: !!set
+  <<: *arnold_id
+  <<: *arnold_beauty_shading
+  <<: *arnold_beauty_shading_global
+  <<: *arnold_beauty_direct_indirect
+  <<: *arnold_light_group
+  <<: *arnold_albedo
+  <<: *arnold_color_layer
+  ? opacity
+  ? volume_opacity
+  ? shadow
+  ? shadow_diff
+
+_vec4: !!set
+  ? primary
+  ? beauty
+  ? rgba
+
+_xyz: !!set
+  ? P
+  ? N
+  ? Pref

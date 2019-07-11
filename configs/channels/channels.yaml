@@ -1,0 +1,35 @@
+
+channels_red: 
+ - red
+channels_green: 
+ - green
+channels_blue: 
+ - blue
+channels_alpha: 
+ - alpha
+
+_alpha: 
+  - alpha
+
+_z:
+  - Z
+
+_uv:
+  - u
+  - v
+
+_vec3:
+  - red
+  - green
+  - blue
+
+_vec4:
+ - red
+ - green
+ - blue
+ - alpha
+
+_xyz: 
+  - X
+  - Y
+  - Z

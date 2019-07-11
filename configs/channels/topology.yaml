@@ -1,0 +1,18 @@
+# defines which keys can be used to generate a topology
+# they are meant to be mirrorred as they are alternate ways of encoding the same channel
+
+topology:
+  - _alpha
+  - _uv
+  - _vec3
+  - _vec4
+  - _xyz
+  - _z
+
+exr_topology:
+  - _alpha_exr
+  - _uv_exr
+  - _vec3_exr
+  - _vec4_exr
+  - _xyz_exr
+  - _z_exr

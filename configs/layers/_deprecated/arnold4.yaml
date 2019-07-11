@@ -1,0 +1,186 @@
+
+beauty_shading_global: !!set &arnold_global
+  ? specular
+  ? diffuse
+  ? volume
+  ? sss
+
+beauty_direct_indirect: !!set &beauty_direct_indirect
+  ? direct
+  ? indirect
+
+base_color: !!set &arnold_base_color
+  ? diffuse_color
+
+depth: !!set &arnold_depth
+  ? Z
+
+uv: !!set &arnold_uv
+  ? uv
+  ? motionvector
+
+id: !!set &arnold_id
+  ? id_1
+  ? id_2
+  ? id_3
+  ? id_4
+  ? id_5
+  ? id_6
+  ? id_7
+  ? id_8
+
+diffuse: !!set &arnold_diffuse
+  ? direct_diffuse
+  ? direct_diffuse_cel
+  ? direct_diffuse_raw
+  ? direct_diffuse_raw_cel
+  ? indirect_diffuse
+  ? indirect_diffuse_cel
+  ? indirect_diffuse_raw
+  ? indirect_diffuse_raw_cel
+
+direct: !!set &arnold_direct
+  ? direct_backlight
+  ? direct_diffuse
+  ? direct_diffuse_cel
+  ? direct_diffuse_raw
+  ? direct_diffuse_raw_cel
+  ? direct_glint
+  ? direct_global
+  ? direct_local
+  ? direct_specular
+  ? direct_specular_2
+  ? direct_sss
+  ? direct_transmission
+
+specular: !!set &arnold_specular
+  ? direct_specular
+  ? direct_specular_2
+  ? indirect_specular
+  ? indirect_specular_2
+
+
+indirect: !!set &arnold_indirect
+  ? indirect_backlight
+  ? indirect_diffuse
+  ? indirect_diffuse_cel
+  ? indirect_diffuse_raw
+  ? indirect_glint
+  ? indirect_global
+  ? indirect_local
+  ? indirect_specular
+  ? indirect_specular_2
+  ? indirect_sss
+  ? indirect_transmission
+
+secondary: !!set &arnold_secondary
+  ? emission
+  ? reflection
+  ? refraction
+  ? single_scatter
+  ? sss
+
+light_group: !!set &arnold_light_group
+  ? light_group_1
+  ? light_group_2
+  ? light_group_3
+  ? light_group_4
+  ? light_group_5
+  ? light_group_6
+  ? light_group_7
+  ? light_group_8
+  ? mesh_light_beauty
+
+shadow: !!set &arnold_shadow
+  ? shadow
+  ? shadow_diff
+  ? shadow_group_1
+  ? shadow_group_2
+  ? shadow_group_3
+  ? shadow_group_4
+  ? shadow_group_5
+  ? shadow_group_6
+  ? shadow_group_7
+  ? shadow_group_8
+
+opacity: !!set &arnold_opacity
+  ? opacity
+  ? volume_opacity
+
+
+volume: !!set &arnold_volume
+  ? volume
+  ? volume_direct
+  ? volume_indirect
+  ? volume_opacity
+
+raw: !!set &arnold_raw
+  ? direct_diffuse_raw
+  ? direct_diffuse_raw_cel
+  ? indirect_diffuse_raw
+  ? indirect_diffuse_raw_cel
+
+matte: !!set &arnold_matte
+  <<: *arnold_depth
+  ? shadow_matte
+  ? volume_z
+  ? volume_opacity
+
+non_color: !!set &non_color
+  <<: *arnold_id
+  <<: *arnold_uv
+  <<: *arnold_depth
+  <<: *arnold_opacity
+  <<: *arnold_matte
+
+beauty_shading: !!set &arnold_beauty_shading
+  ? direct_backlight
+  ? direct_diffuse
+  ? direct_glint
+  ? direct_specular
+  ? direct_specular_2
+  ? direct_sss
+  ? direct_transmission
+  ? indirect_backlight
+  ? indirect_diffuse
+  ? indirect_specular
+  ? indirect_specular_2
+  ? indirect_sss
+  ? indirect_transmission
+  ? emission
+  ? reflection
+  ? refraction
+  ? single_scatter
+
+_prefix: !!set
+  ? id
+
+# channel mappings
+
+_alpha: !!set &arnold_alpha
+  <<: *arnold_depth
+  <<: *arnold_opacity
+
+_uv: !!set
+  <<: *arnold_uv
+
+_vec3: !!set
+  <<: *arnold_id
+  <<: *arnold_beauty_shading
+  <<: *arnold_light_group
+  <<: *arnold_base_color
+  <<: *arnold_global
+  <<: *arnold_raw
+  <<: *arnold_shadow
+  <<: *arnold_direct
+  <<: *arnold_indirect
+
+_vec4: !!set
+  ? primary
+  ? beauty
+  ? rgba
+
+_xyz: !!set
+  ? P
+  ? Pref
+  ? N
