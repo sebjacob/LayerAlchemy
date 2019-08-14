@@ -122,7 +122,7 @@ public:
         }
         //printf("created value map %p\n", (void*) this);
     }
-    //wrapper function used to calculate the result of user knob values, and stores them into this instance's 
+    //wrapper function used to calculate the result of user knob values, and stores them into this instance's
     //channelMultipliers map. This is to keep the pixel engine light, by not repeating the algorythm for very scanline
     void populateChannelSetKnobMultipliers(const DD::Image::ChannelSet* channels, const int& soloMode, const int& mathMode, const string& soloLayerName, const StrVecType& soloLayerNames) {
         channelMultipliers.clear();
@@ -136,24 +136,25 @@ public:
         }
     }
     // returns a vector of pointers to all float values associated with this layer at a specific color index
-    vector<float*> layerValuePointersForIndex(const string& layerName, const int& colorIndex) {
-        vector<float*> output;
-        int amount = ptrValueMap[layerName].size();
-        output.reserve(amount);
+    vector<float*> layerValuePointersForIndex(const string& layerName, const int& colorIndex) const {
+        vector<float*> outputVector;
+        auto it = ptrValueMap.find(layerName);
+        int amount = it->second.size();
+        outputVector.reserve(amount);
         for (int idx = 0; idx < amount; idx++) {
-            output.emplace_back(&ptrValueMap[layerName][idx][colorIndex]);
+            outputVector.emplace_back(&it->second[idx][colorIndex]);
         }
-        return output;
+        return outputVector;
     }
     
     //returns the pointer specific to this layer
-    float* getLayerFloatPointer(const string& knobName) {
-        return ptrValueMap[knobName][0];
+    float* getLayerFloatPointer(const string& knobName) const {
+        return ptrValueMap.find(knobName)->second[0]; // the first index if where the layer pointer is.
     }
 
     // computes, for a given layer name, the total value to multiply the pixels with at a specific color index for any given
     // math mode
-    float getLayerMultiplier(const string& layerName, const int& colorIndex, const int& mode) {
+    float getLayerMultiplier(const string& layerName, const int& colorIndex, const int& mode) const {
         vector<float*> values = layerValuePointersForIndex(layerName, colorIndex);
         float out = 0.0f;
         if (mode == MATH_MODES::STOPS) {
@@ -172,7 +173,7 @@ public:
         }
         return out;
     }
-    bool isDefault(const string& layerName,  const int& mode){
+    bool isDefault(const string& layerName,  const int& mode) const {
         float sum = 0;
         for (int colorIndex = 0; colorIndex < 3; colorIndex++ ){
             sum += getLayerFloatPointer(layerName)[colorIndex];
@@ -181,7 +182,7 @@ public:
         return isDefault;
     }
 
-    bool isSoloLayer(const string& layerName, const string& soloLayerName, const StrVecType& soloLayerNames) {
+    bool isSoloLayer(const string& layerName, const string& soloLayerName, const StrVecType& soloLayerNames) const {
         bool contains = false;
         if (soloLayerName == MASTER_KNOB_NAME || soloLayerName == layerName) {
             contains = true;
@@ -213,9 +214,9 @@ class GradeBeauty : public PixelIop {
     // utility function that handles the setting of the knob's default value, uses python, couldn't find a c++ equivalent
     void setKnobDefaultValue(DD::Image::Op* nukeOpPtr);
     //this function simply tests that the private vector of color knob pointers is complete
-    bool colorKnobsPopulated();
+    bool colorKnobsPopulated() const;
     // this is only run when knob solo mode is enabled, it tests if a layer name should be rendered
-    bool isSoloLayer(const string&);
+    bool isSoloLayer(const string&) const;
     // this calculates the multiply value for layers for the pixel engine.
     void calculateLayerValues(const DD::Image::ChannelSet*, GradeBeautyValueMap&);
 
@@ -289,19 +290,12 @@ void GradeBeauty::pixel_engine(const Row& in, int y, int x, int r, ChannelMask c
             out.copy(preRow, z, x, r);
         }
     }
-    if (aborted()) {
-        return;
-    }
-
+    if (aborted()) {return;}
     foreach(z, layerSetKnob.configuredChannelSet()) {
-        if (aborted()) {
-            return;
-        }
-
         int chanIdx = colourIndex(z);
         string layerName = getLayerName(z);
         bool relevantLayer = m_valueMap.channelMultipliers.find(layerName) != m_valueMap.channelMultipliers.end();
-        if ((targetRowPtrIdxMap.find(chanIdx) == targetRowPtrIdxMap.end()) || (chanIdx >= 3) || in.is_zero(z) || !relevantLayer) {
+        if ((targetRowPtrIdxMap.find(chanIdx) == targetRowPtrIdxMap.end()) || (chanIdx >= 3) || !relevantLayer) {
             out.copy(in, z, x, r);
             continue;
         } else {
@@ -325,7 +319,6 @@ void GradeBeauty::pixel_engine(const Row& in, int y, int x, int r, ChannelMask c
 
 void GradeBeauty::knobs(Knob_Callback f) {
     bool colorKnobVectorComplete = colorKnobsPopulated();
-
     layerSetKnob.createEnumKnob(f);
     createDocumentationButton(f);
     createColorKnobResetButton(f);
@@ -426,13 +419,12 @@ int GradeBeauty::knob_changed(Knob* k) {
     }
     return 1;
 }
-bool GradeBeauty::colorKnobsPopulated() {
+bool GradeBeauty::colorKnobsPopulated() const {
     return  (colorKnobsPtr->size() >= (categories::all.size() + 1));
 }
 
 Knob* GradeBeauty::createColorKnob(Knob_Callback f, float* valueStore, const string& name, const bool& visible) {
     const char* knobName = name.c_str();
-    //printf("knobname %s : mathmode: %d\n", knobName, m_mathMode);
     Knob* colorKnob = Color_knob(f, valueStore, IRange(0, 1), knobName, knobName);
     SetFlags(f, Knob::LOG_SLIDER);
     SetFlags(f, Knob::NO_COLOR_DROPDOWN);
@@ -441,7 +433,6 @@ Knob* GradeBeauty::createColorKnob(Knob_Callback f, float* valueStore, const str
 
 void GradeBeauty::setKnobRanges(const vector<Knob*>* t_colorKnobs, const int& modeValue, const bool& reset) {
     const char* script = (modeValue == 0 ? "{0}" : "{1}"); 
-    //printf("knob ranges has %lu color knobs\n", colorKnobs->size());
     for (auto iterKnob = t_colorKnobs->begin(); iterKnob != t_colorKnobs->end(); iterKnob++) {
         if (reset) {
             (*iterKnob)->from_script(script); 
@@ -468,7 +459,7 @@ void GradeBeauty::setKnobVisibility(const vector<Knob*>* t_colorKnobs) {
             colorKnob->set_flag(Knob::ALWAYS_SAVE);
             // since hidden knobs can be revealed, make sure the values are correct
             if (m_valueMap.isDefault(colorKnob->name(), 0.0f) && m_mathMode == MATH_MODES::MULTIPLY) {
-                colorKnob->from_script("{1}"); //printf("from script in visibility\n");
+                colorKnob->from_script("{1}");
             }
         } else {
             colorKnob->clear_flag(Knob::ALWAYS_SAVE);

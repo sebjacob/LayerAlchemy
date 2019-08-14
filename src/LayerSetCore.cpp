@@ -24,6 +24,9 @@ LayerMap::LayerMap(const StrMapType& other)
 LayerMap::~LayerMap() {
 }
 
+LayerMap::LayerMap(const string yamlFilePath) : strMap(loadConfigToMap(yamlFilePath)) {
+}
+
 StrVecType LayerMap::operator[](const StrVecType& categoryNames) {
     StrVecType items;
     StrVecType::const_iterator it, it2;
@@ -65,7 +68,7 @@ void LayerMap::add(const string categoryName, const string layer) {
     }
 }
 
-const StrVecType LayerMap::categories() {
+const StrVecType LayerMap::categories() const {
     StrVecType itemKeys;
     itemKeys.reserve(strMap.size());
     for (auto& kvp : strMap) {
@@ -77,7 +80,7 @@ const StrVecType LayerMap::categories() {
     return itemKeys;
 }
 
-const StrVecType LayerMap::categories(string& layerName) {
+const StrVecType LayerMap::categories(string& layerName) const {
     StrVecType itemKeys;
     for (auto& kvp : strMap) {
         if (isMember(kvp.first, layerName)) {
@@ -86,11 +89,23 @@ const StrVecType LayerMap::categories(string& layerName) {
     }
     return itemKeys;
 }
+const StrVecType LayerMap::uniqueLayers() const {
+    StrVecType uniqueLayers;
+    for (auto & kvp : strMap) {
+        for (auto layer : kvp.second) {
+            if (!(find(begin(uniqueLayers), end(uniqueLayers), layer) != uniqueLayers.end())) {
+                uniqueLayers.push_back(layer);
+            }
+        }
+    }
+    return uniqueLayers;
+}
 
 string LayerMap::toString() const {
     std::ostringstream reprStream;
     string repr;
-    reprStream << "\nContents of this LayerMap at " << &strMap << " is: \n\n{\n";
+    reprStream <<
+    "<LayerSetCore.LayerMap object at " << &strMap << "> \n\n{\n";
     for (auto & kvp : strMap) {
         reprStream << "'" << (string) kvp.first << "'" << " : (";
         for (unsigned m = 0; m < kvp.second.size(); m++) {
@@ -103,7 +118,7 @@ string LayerMap::toString() const {
     return repr;
 }
 
-const StrVecType LayerMap::categoriesByType(const categorizeType& catType) {
+const StrVecType LayerMap::categoriesByType(const categorizeType& catType) const {
     StrVecType relevantCats;
     relevantCats.reserve(strMap.size());
     for (const auto& kvp : strMap) {
@@ -136,9 +151,9 @@ layers(LayerMap(loadConfigToMap((getenv(LAYER_ENV_VAR))))) {
 LayerCollection::~LayerCollection() {
 }
 
-string LayerCollection::dePrefix(const string layerName) {
+string LayerCollection::dePrefix(const string layerName) const {
     string unPrefixedLayerName, outputLayerName;
-    StrVecType prefix = layers["_prefix"];
+    StrVecType prefix = layers.strMap.at("_prefix");
 
     for (StrVecType::const_iterator iterPrefix = prefix.begin(); iterPrefix != prefix.end(); iterPrefix++) {
         string prefixName = *iterPrefix;
@@ -158,14 +173,14 @@ string LayerCollection::dePrefix(const string layerName) {
     return outputLayerName;
 }
 
-bool LayerMap::contains(const string& element) {
+bool LayerMap::contains(const string& element) const {
     StrVecType categories = this->categories();
     bool result = std::any_of(categories.begin(), categories.end(), [element](const string & str) {
         return str == element; });
     return result;
 }
 
-bool LayerMap::contains(const StrVecType& elements) {
+bool LayerMap::contains(const StrVecType& elements) const {
     StrVecType categories = this->categories();
     return std::includes(categories.begin(), categories.end(), elements.begin(), elements.end());
 }
@@ -186,7 +201,7 @@ StrVecType utilities::applyChannelNames(const string& layerName, const StrVecTyp
     return channelNames;
 }
 
-LayerMap LayerCollection::categorizeLayers(const StrVecType& layersToCategorize, const categorizeType& catType) {
+LayerMap LayerCollection::categorizeLayers(const StrVecType& layersToCategorize, const categorizeType& catType) const {
     LayerMap categorizedLayerMap;
     StrVecType relevantCats = layers.categoriesByType(catType);
 
@@ -205,23 +220,22 @@ LayerMap LayerCollection::categorizeLayers(const StrVecType& layersToCategorize,
     return categorizedLayerMap;
 };
 
-LayerMap LayerCollection::categorizeLayers(const StrVecType& layersToCategorize, const categorizeType& catType, const CategorizeFilter& catFilter) {
+LayerMap LayerCollection::categorizeLayers(const StrVecType& layersToCategorize, const categorizeType& catType, const CategorizeFilter& catFilter) const {
     LayerMap categorizedLayerMap;
+    StrVecType foundCats;
     StrVecType relevantCats = layers.categoriesByType(catType);
-
-    if (catFilter.filterMode == CategorizeFilter::ONLY) { // constrain categories for ONLY
-        StrVecType filteredCats;
-        for (auto iterCat = catFilter.categories.begin(); iterCat != catFilter.categories.end(); iterCat++) {
-            bool isFilterCat = std::find(relevantCats.begin(), relevantCats.end(), *iterCat) != relevantCats.end();
-            if (isFilterCat) {
-                filteredCats.push_back(*iterCat);
-            }
+    //loop over the requested categories, make sure they are found in the LayerCollection object
+    for (auto iterCat = catFilter.categories.begin(); iterCat != catFilter.categories.end(); iterCat++) {
+        bool found = std::find(relevantCats.begin(), relevantCats.end(), *iterCat) != relevantCats.end();
+        if (found) {
+            foundCats.push_back(*iterCat);
         }
-        relevantCats = filteredCats;
     }
-    
+    if (catFilter.filterMode == CategorizeFilter::ONLY) { // constrain categories for ONLY
+        relevantCats = foundCats;
+    }
+
     for (auto iterLayer = layersToCategorize.begin(); iterLayer != layersToCategorize.end(); iterLayer++) {
-        string realLayerName;
         string layerName = utilities::getLayerFromChannel(*iterLayer);
         string dePrefixedLayerName = dePrefix(layerName);
         bool validLayer = false;
@@ -261,8 +275,6 @@ LayerMap LayerCollection::topology(const StrVecType& layerNames, const topologyS
     LayerMap channelMapping;
     LayerMap categorized = categorizeLayers(layerNames, categorizeType::priv);
 
-    //std::cout << "topology >>" << categorized.toString();
-
     for (iterCategory = topoNames.begin(); iterCategory != topoNames.end(); iterCategory++) {
         // todo, implement "hasAny" and "hasAll" methods to LayerMap class
         if (!categorized.contains(*iterCategory)) {
@@ -285,7 +297,5 @@ LayerMap LayerCollection::topology(const StrVecType& layerNames, const topologyS
             channelMapping.strMap[layerName] = channelNames;
         }
     }
-    //std::cout << "topology mapping >>" << channelMapping.toString();
-
     return channelMapping;
 };

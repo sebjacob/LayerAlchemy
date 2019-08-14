@@ -1,64 +1,109 @@
 # Config file tools
 
-# ConfigTester
+## ConfigTester
 
 Simple executable to test if a yaml file can be loaded and a LayerMap object can be constructed
 
-```
-ConfigTester /path/to/config.yaml
+This also runs at Nuke startup to make sure the config files are ok
+
+```bash
+./ConfigTester
+
+ConfigTester 😷 
+
+Simple executable to test if a yaml file can be loaded and a LayerMap object can be constructed
+
+Example usage: ConfigTester /path/to/config.yaml
 ```
 
-# LayerTester
+```bash
+./ConfigTester $LAYER_ALCHEMY_LAYER_CONFIG
+✅ LayerAlchemy : valid configuration file /path/to/layers.yaml
+```
+
+## LayerTester
 Simple command line utility to verify how the system classifies layer names.
 
-Can be used to verify custom yaml config files.
+Useful for verifying custom yaml config files.
 
-the following environment variables must be set to where the config files are:
-```
+It uses the main following environment variables the config files at this time.
+
+set those first :
+```bash
 export LAYER_ALCHEMY_CHANNEL_CONFIG=$PWD/configs/channels.yaml
 export LAYER_ALCHEMY_LAYER_CONFIG=$PWD/configs/layers.yaml
 ```
 
-```
-./layer_alchemy/bin/LayerTester P diffuse_direct roto_head diffuse_albedo puz_shadingFail specular_indirect
-public categorization : 
+```bash
+./LayerTester
 
-Contents of this LayerMap at 0x7ffee71b5760 is: 
+LayerTester 😷 
+Simple executable to test the layer categorization
+
+LayerAlchemy 0.5.1 https://github.com/sebjacob/LayerAlchemy
+
+Usage: ../../build_darwin18/LayerTester [options]
+Options:
+    --layers               List of layer names to test (Required)
+    -c, --categories       List of categories to filter
+    --topology             outputs topology       
+    --use_private          test the private categorization
+Required argument not found: --layers
+```
+
+### test public categorization
+
+```bash
+./LayerTester --layers P diffuse_direct roto_head diffuse_albedo puz_custom specular_indirect
+
+<LayerSetCore.LayerMap object at 0x7ffee60f48b8> 
 
 {
 'albedo' : ('diffuse_albedo', ),
-'all' : ('P', 'diffuse_direct', 'roto_head', 'diffuse_albedo', 'puz_shadingFail', 'specular_indirect', ),
+'all' : ('P', 'diffuse_direct', 'roto_head', 'diffuse_albedo', 'puz_custom', 'specular_indirect', ),
 'base_color' : ('diffuse_albedo', ),
 'beauty_shading' : ('diffuse_direct', 'specular_indirect', ),
 'diffuse' : ('diffuse_direct', 'diffuse_albedo', ),
 'direct' : ('diffuse_direct', ),
 'indirect' : ('specular_indirect', ),
 'matte' : ('roto_head', ),
-'non_color' : ('P', 'roto_head', 'puz_shadingFail', ),
+'non_color' : ('P', 'roto_head', 'puz_custom', ),
 'p' : ('P', ),
-'puz' : ('puz_shadingFail', ),
+'puz' : ('puz_custom', ),
 'roto' : ('roto_head', ),
 'specular' : ('specular_indirect', ),
 }
+```
+### test private categorization
 
-private categorization : 
+```bash
+./LayerTester --use_private --layers P diffuse_direct roto_head diffuse_albedo puz_custom specular_indirect 
 
-Contents of this LayerMap at 0x7ffee71b5780 is: 
+
+<LayerSetCore.LayerMap object at 0x7ffedfc3e898> 
 
 {
 '_alpha' : ('roto_head', ),
-'_asset' : ('roto_head', 'puz_shadingFail', ),
-'_prefix' : ('P', 'roto_head', 'puz_shadingFail', ),
+'_asset' : ('roto_head', 'puz_custom', ),
+'_prefix' : ('P', 'roto_head', 'puz_custom', ),
 '_sanitizable' : ('P', ),
 '_step' : ('P', ),
-'_vec3' : ('diffuse_direct', 'diffuse_albedo', 'puz_shadingFail', 'specular_indirect', ),
+'_vec3' : ('diffuse_direct', 'diffuse_albedo', 'puz_custom', 'specular_indirect', ),
 '_xyz' : ('P', ),
-'all' : ('P', 'diffuse_direct', 'roto_head', 'diffuse_albedo', 'puz_shadingFail', 'specular_indirect', ),
+'all' : ('P', 'diffuse_direct', 'roto_head', 'diffuse_albedo', 'puz_custom', 'specular_indirect', ),
 }
+```
+### test filtered categorization
+Following example take various layers but focusses on _non_color_ and _base_color_ categories
 
-filtered excluded categorization : excludes non_color and base_color categories
+```bash
+./LayerTester --layers P diffuse_direct roto_head diffuse_albedo puz_custom specular_indirect -c non_color base_color
 
-Contents of this LayerMap at 0x7ffee71b5868 is: 
+-----------------------------------------------
+Layer names : 'P diffuse_direct roto_head diffuse_albedo puz_custom specular_indirect'
+CategorizeFilter : EXCLUDE
+Category names : 'non_color base_color' 
+<LayerSetCore.LayerMap object at 0x7ffeefaf1888> 
 
 {
 'all' : ('diffuse_direct', 'specular_indirect', ),
@@ -68,55 +113,31 @@ Contents of this LayerMap at 0x7ffee71b5868 is:
 'indirect' : ('specular_indirect', ),
 'specular' : ('specular_indirect', ),
 }
-
-filtered include categorization : include non_color and base_color categories
-
-Contents of this LayerMap at 0x7ffee71b57a0 is: 
+-----------------------------------------------
+Layer names : 'P diffuse_direct roto_head diffuse_albedo puz_custom specular_indirect'
+CategorizeFilter : INCLUDE
+Category names : 'non_color base_color' 
+<LayerSetCore.LayerMap object at 0x7ffeefaf1888> 
 
 {
 'albedo' : ('diffuse_albedo', ),
-'all' : ('P', 'roto_head', 'diffuse_albedo', 'puz_shadingFail', ),
+'all' : ('P', 'roto_head', 'diffuse_albedo', 'puz_custom', ),
 'base_color' : ('diffuse_albedo', ),
 'diffuse' : ('diffuse_albedo', ),
 'matte' : ('roto_head', ),
-'non_color' : ('P', 'roto_head', 'puz_shadingFail', ),
+'non_color' : ('P', 'roto_head', 'puz_custom', ),
 'p' : ('P', ),
-'puz' : ('puz_shadingFail', ),
+'puz' : ('puz_custom', ),
 'roto' : ('roto_head', ),
 }
-
-filtered only categorization : only include non_color and base_color categories
-
-Contents of this LayerMap at 0x7ffee71b57c0 is: 
+-----------------------------------------------
+Layer names : 'P diffuse_direct roto_head diffuse_albedo puz_custom specular_indirect'
+CategorizeFilter : ONLY
+Category names : 'non_color base_color' 
+<LayerSetCore.LayerMap object at 0x7ffeefaf1888> 
 
 {
 'base_color' : ('diffuse_albedo', ),
-'non_color' : ('P', 'roto_head', 'puz_shadingFail', ),
-}
-
-exr topology style : 
-
-Contents of this LayerMap at 0x7ffee71b5848 is: 
-
-{
-'P' : ('P.X', 'P.Y', 'P.Z', ),
-'diffuse_albedo' : ('diffuse_albedo.B', 'diffuse_albedo.G', 'diffuse_albedo.R', ),
-'diffuse_direct' : ('diffuse_direct.B', 'diffuse_direct.G', 'diffuse_direct.R', ),
-'puz_shadingFail' : ('puz_shadingFail.B', 'puz_shadingFail.G', 'puz_shadingFail.R', ),
-'roto_head' : ('roto_head.A', ),
-'specular_indirect' : ('specular_indirect.B', 'specular_indirect.G', 'specular_indirect.R', ),
-}
-
-lexical topology style: 
-
-Contents of this LayerMap at 0x7ffee71b57f0 is: 
-
-{
-'P' : ('P.X', 'P.Y', 'P.Z', ),
-'diffuse_albedo' : ('diffuse_albedo.red', 'diffuse_albedo.green', 'diffuse_albedo.blue', ),
-'diffuse_direct' : ('diffuse_direct.red', 'diffuse_direct.green', 'diffuse_direct.blue', ),
-'puz_shadingFail' : ('puz_shadingFail.red', 'puz_shadingFail.green', 'puz_shadingFail.blue', ),
-'roto_head' : ('roto_head.alpha', ),
-'specular_indirect' : ('specular_indirect.red', 'specular_indirect.green', 'specular_indirect.blue', ),
+'non_color' : ('P', 'roto_head', 'puz_custom', ),
 }
 ```

@@ -22,6 +22,7 @@ namespace LayerSet {
     LayerSetKnobWrapper::LayerSetKnobWrapper() {
        ptrLayerSetKnobValueStore = new LayerSetKnobValueStore();
        ptrConfiguredChannels = &ptrLayerSetKnobValueStore->selectedChannels;
+       //printf("created LayerSetKnobWrapper %p\n", (void*) this);
     }
 
     LayerSetKnobWrapper::LayerSetKnobWrapper(LayerSetKnobValueStore& ptr) {
@@ -38,36 +39,36 @@ namespace LayerSet {
     void LayerSetKnobWrapper::setItem(const int index) {
         ptrLayerSetKnobValueStore->selectedLayerKnob->set_value(index);
     }
-    string LayerSetKnobWrapper::getSelectedItemString() {
+    string LayerSetKnobWrapper::getSelectedItemString() const {
         return ptrLayerSetKnobValueStore->selectedLayerKnob->enumerationKnob()->getSelectedItemString();
     }
-    int LayerSetKnobWrapper::getSelectedItemIndex() {
+    int LayerSetKnobWrapper::getSelectedItemIndex() const {
         return ptrLayerSetKnobValueStore->selectedLayerKnob->enumerationKnob()->getSelectedItemIndex();
     }
-    DD::Image::ChannelSet LayerSetKnobWrapper::configuredChannelSet() {
+    DD::Image::ChannelSet LayerSetKnobWrapper::configuredChannelSet() const {
         return DD::Image::ChannelSet(ptrLayerSetKnobValueStore->selectedChannels);
     }
-    string LayerSetKnobWrapper::configuredLayerSetName() {
+    string LayerSetKnobWrapper::configuredLayerSetName() const {
         return ptrLayerSetKnobValueStore->categoryName;
     }
 
-    StrVecType LayerSetKnobWrapper::configuredLayerNames() {
+    StrVecType LayerSetKnobWrapper::configuredLayerNames() const {
         return getLayerNames(ptrLayerSetKnobValueStore->selectedChannels);
     }
 
-    const StrVecType LayerSetKnobWrapper::configuredCategoryNames() {
+    StrVecType LayerSetKnobWrapper::configuredCategoryNames() const {
         return ptrLayerSetKnobValueStore->layerMap.categories();
     }
 
-    bool LayerSetKnobWrapper::categoryChanged() {
+    bool LayerSetKnobWrapper::categoryChanged() const {
         return (getSelectedItemString() != ptrLayerSetKnobValueStore->categoryName);
     }
 
-    bool LayerSetKnobWrapper::channelsChanged(const DD::Image::ChannelSet& inChannels) {
+    bool LayerSetKnobWrapper::channelsChanged(const DD::Image::ChannelSet& inChannels) const {
         return (inChannels != ptrLayerSetKnobValueStore->channelSet);
     }
 
-    bool LayerSetKnobWrapper::contains(const string& category) {
+    bool LayerSetKnobWrapper::contains(const string& category) const {
         return ptrLayerSetKnobValueStore->layerMap.contains(category);
     }
 
@@ -115,7 +116,7 @@ namespace LayerSet {
                 ptrLayerSetKnobValueStore->selectedChannels.insert(z);
             }
         }
-        ptrLayerSetKnobValueStore->channelSet= inChannels;
+        ptrLayerSetKnobValueStore->channelSet = inChannels;
     }
 
     DD::Image::Knob* LayerSetKnobWrapper::createEnumKnob(DD::Image::Knob_Callback& f) {
@@ -141,10 +142,6 @@ namespace LayerSet {
         }
     }
 
-    void LayerSetKnobWrapper::setNodeLabel(DD::Image::Op* op) {
-        op->knob("label")->set_text(getSelectedItemString().c_str());
-    }
-
     void LayerSetKnobWrapper::update(LayerCollection& collection, const DD::Image::ChannelSet& inChannels, const CategorizeFilter& categorizeFilter) {
 
         if (!inChannels.empty()) {
@@ -156,7 +153,11 @@ namespace LayerSet {
             ptrLayerSetKnobValueStore->selectedChannels = DD::Image::ChannelSet(DD::Image::Chan_Black);
         }
     }
-    
+
+    void LayerSetKnobWrapper::setNodeLabel(DD::Image::Op* op) {
+    op->knob("label")->set_text(getSelectedItemString().c_str());
+    }
+
     void validateBeta(DD::Image::Op* nukeOpPtr, const int& year, const int& month) {
         std::time_t date = std::time(NULL);
         std::tm* ts = std::localtime(&date);

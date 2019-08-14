@@ -1,25 +1,30 @@
-"""shared callback function module for LayerAlchemy"""
+"""LayerAlchemy callback module"""
 
 import os
 
 import nuke
 import nukescripts
 
-import layer_alchemy.utilities
+import utilities
+import constants
 
 
-def knobChangedCommon(knob):
+def knobChangedCommon(node, knob):
     """
-    common knobChanged function for plugin ins this suite
-    :param knob: the nuke knob object
+    Common knobChanged function for plugins in this suite
+    :param node: the Nuke node object
+    :type node: :class:`nuke.Node`
+    :param knob: the Nuke knob object
     :type knob: :class:`nuke.Knob`
     """
-    if knob.name() == "docButton":
-        documentationIndex = layer_alchemy.utilities.getDocumentationIndexPath()
+    if knob.name() == 'docButton':
+        documentationIndex = utilities.getDocumentationIndexPath()
         if not documentationIndex:
-            nuke.message("documentation is unavailable")
+            message = 'Local documentation is unavailable, please visit :\n\n<i>{website}</i>'.format(
+                website=constants.LAYER_ALCHEMY_URL)
+            nuke.message(message)
             return
-        pluginDocFileName = "{0}.{1}".format(knob.node().Class(), 'html')
+        pluginDocFileName = '{0}.{1}'.format(node.Class(), 'html')
         htmlFile = os.path.join(os.path.dirname(documentationIndex), pluginDocFileName)
         outputPath = htmlFile if os.path.isfile(htmlFile) else documentationIndex
         nukescripts.start(outputPath)

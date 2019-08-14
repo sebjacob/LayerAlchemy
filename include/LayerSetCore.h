@@ -57,8 +57,9 @@ public:
     //data stored publicly, for now.
     StrMapType strMap;
     LayerMap();
-    LayerMap(const LayerMap& other);
+    LayerMap(const LayerMap&);
     LayerMap(const StrMapType&);
+    LayerMap(const string);
     virtual ~LayerMap();
 
     StrVecType operator[](const StrVecType&);
@@ -67,17 +68,19 @@ public:
     //adds to category a layer
     void add(const string, const string);
     //returns the  category names in this LayerMap
-    const StrVecType categories();
+    const StrVecType categories() const;
     //returns the  category names for a given layer name
-    const StrVecType categories(string&);
+    const StrVecType categories(string&) const;
     //Get a vector of category names for each category type
-    const StrVecType categoriesByType(const categorizeType&);
+    const StrVecType categoriesByType(const categorizeType&) const;
     //test if a category contains an element
     bool isMember(const string&, const string&) const;
     //test if a category contains an element
-    bool contains(const string&);
+    bool contains(const string&) const;
     //test if a category contains a multiple elements
-    bool contains(const StrVecType&);
+    bool contains(const StrVecType&) const;
+    //returns a vector of unique layer names in this LayerMap
+    const StrVecType uniqueLayers() const;
     //returns the contents of the object in string form
     string toString() const;
 };
@@ -90,17 +93,17 @@ class LayerCollection {
 
 private:
     // takes a given layer name and returns a base category prefix or and empty string otherwise
-    string dePrefix(const string);
+    string dePrefix(const string) const;
 
 public:
     // default constructor
     LayerCollection();
     // returns a LayerMap of categorized items
-    LayerMap categorizeLayers(const StrVecType&, const categorizeType&);
+    LayerMap categorizeLayers(const StrVecType&, const categorizeType&) const;
     // returns a LayerMap of categorized items, but filtered with a CategorizeFilter
-    LayerMap categorizeLayers(const StrVecType&, const categorizeType&, const CategorizeFilter& catFilter);
+    LayerMap categorizeLayers(const StrVecType&, const categorizeType&, const CategorizeFilter& catFilter) const;
     //The notion of topology is basically adding, for example ".red" to a layer name based on a topologyStyle.
-     LayerMap topology(const StrVecType&, const topologyStyle&);
+    LayerMap topology(const StrVecType&, const topologyStyle&);
 
     // houses the map to channel configurations
     LayerMap channels;

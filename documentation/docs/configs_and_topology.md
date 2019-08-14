@@ -101,29 +101,34 @@ layer_alchemy.collapse('path to channels config folder', '/path/to/channels.yaml
 
 Then rebuild the project (make install)
 
-!!! note "You can now test everything is ok with [LayerTester](tools.md#LayerTester)"
+You can now test everything is ok with [LayerTester](tools.md#LayerTester)
 
-    ./BUILD/bin/LayerTester qc
-    
-    Contents of this LayerMap at 0x7ffeec465818 is:
-    
-    {
-    'all' : ('qc', ),
-    'quality_control' : ('qc', ),
-    }
-    
-    exr topology style :
-    
-    Contents of this LayerMap at 0x7ffeec4657c0 is:
-    
-    {
-    'qc' : ('qc.grain', 'qc.edges', 'qc.diff', ),
-    }
-    
-    lexical topology style:
-    
-    Contents of this LayerMap at 0x7ffeec4657e0 is:
-    
-    {
-    'qc' : ('qc.grain', 'qc.edges', 'qc.diff', ),
-    }
+```bash
+./LayerTester --layers qc
+
+<LayerSetCore.LayerMap object at 0x7ffee41fd928> 
+
+{
+'all' : ('qc', ),
+'quality_control' : ('qc', ),
+}
+```
+
+```bash
+./LayerTester --layers qc --topology
+
+Layer names : 'qc'
+Topology style : EXR
+<LayerSetCore.LayerMap object at 0x7ffee96f0918> 
+
+{
+'qc' : ('qc.grain', 'qc.edges', 'qc.diff', ),
+}
+
+Topology style : 'LEXICAL'
+<LayerSetCore.LayerMap object at 0x7ffee96f0918> 
+
+{
+'qc' : ('qc.grain', 'qc.edges', 'qc.diff', ),
+}
+```

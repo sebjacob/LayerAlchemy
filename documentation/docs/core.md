@@ -41,19 +41,22 @@ Let's take the common layer name ***"specular_direct"*** for example :
 
 In this plugin suite, if it is found this layer will be categorized as :
 
-!!! info "using the supplied commandline tool LayerTester"
+The included commandline tool [LayerTester](tools.md#LayerTester) to visualize the classification :
 
-            ./LayerTester specular_direct
-            public categorization : 
-            
-            Contents of this LayerMap at 0x7ffee00267f0 is: 
-            
-            {
-            'all' : ('specular_direct', ),
-            'beauty_shading' : ('specular_direct', ),
-            'direct' : ('specular_direct', ),
-            'specular' : ('specular_direct', ),
-            }
+```bash
+./LayerTester --layers specular_direct
+
+<LayerSetCore.LayerMap object at 0x7ffeef40f898> 
+
+{
+'all' : ('specular_direct', ),
+'beauty_shading' : ('specular_direct', ),
+'direct' : ('specular_direct', ),
+'specular' : ('specular_direct', ),
+}
+
+```
+
 
 !!! info "we can see here that this single layer name is actually part of 3 [LayerSets](core.md#layersets)"
 

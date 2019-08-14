@@ -1,48 +1,31 @@
 """LayerAlchemy Nuke Menu"""
 
-import os
-
 import nuke
 
-import layer_alchemy
+import layer_alchemy.constants
+import layer_alchemy.utilities
 
-libExtension = nuke.env['PluginExtension']
-nukeVersionMajor = nuke.env['NukeVersionMajor']
-nukeVersionMinor = nuke.env['NukeVersionMinor']
-nukeVersionDirName = '{major}.{minor}'.format(major=nukeVersionMajor, minor=nukeVersionMinor)
+if layer_alchemy.utilities.nukeVersionCompatible():
+    toolbar = nuke.menu("Nodes")
+    menu = toolbar.addMenu("LayerAlchemy", icon="layer_alchemy.png", index=-1)
 
-layerAlchemyNukeRootDir = os.path.dirname(os.path.realpath(__file__))
-layerAlchemyIconDir = os.path.abspath(os.path.join(layerAlchemyNukeRootDir, 'icons'))
-layerAlchemyPluginDir = os.path.abspath(os.path.join(layerAlchemyNukeRootDir, 'plugins'))
-
-nuke.pluginAddPath(layerAlchemyIconDir)
-nuke.pluginAddPath(layerAlchemyPluginDir)
-
-plugins = {
-    'GradeBeauty': 'GradeBeauty.png',
-    'GradeBeautyLayerSet': 'GradeBeautyLayerSet.png',
-    'FlattenLayerSet': 'FlattenLayerSet.png',
-    'RemoveLayerSet': 'RemoveLayerSet.png',
-    'MultiplyLayerSet': 'MultiplyLayerSet.png',
-    'GradeLayerSet': 'GradeLayerSet.png',
-}
-
-menu = nuke.menu('Nodes').addMenu('LayerAlchemy', icon='layer_alchemy.png')
-
-for pluginName, icon in sorted(plugins.items()):
-    pluginFile = '{0}.{1}'.format(pluginName, libExtension)
-    if os.path.isfile(os.path.join(layerAlchemyPluginDir, pluginFile)):
+    for pluginName, icon in sorted(layer_alchemy.constants.LAYER_ALCHEMY_PLUGINS.items()):
         menu.addCommand(name=pluginName,
-                                            command="nuke.createNode('{}')".format(pluginName),
-                                            icon=icon)
+                        command="nuke.createNode('{}')".format(pluginName),
+                        icon=icon)
 
-        nuke.load('{0}.{1}'.format(pluginName, libExtension))
-        nuke.addKnobChanged(lambda: layer_alchemy.callbacks.knobChangedCommon(nuke.thisKnob()),
-                            nodeClass=pluginName)
+    menu.addSeparator()
+    menu.addCommand(name="documentation",
+                    command=("import layer_alchemy;import nuke;import nukescripts;"
+                             "nukescripts.start(layer_alchemy.utilities.getDocumentationIndexPath())"),
+                    icon="documentation.png"
+                    )
 
-menu.addSeparator()
-menu.addCommand(name='documentation',
-                command=("import layer_alchemy;import nuke;import nukescripts;"
-                         "nukescripts.start(layer_alchemy.utilities.getDocumentationIndexPath())"),
-                icon="documentation.png"
-                )
+else:
+    currentNukeVersion = layer_alchemy.utilities.getNukeVersionString()
+    message = "LayerAlchemy : not loading because no installed plugins found for Nuke {version}".format(
+        version=currentNukeVersion)
+    consoleMessage = "\xE2\x9D\x97 \x1B[31m{message}\033[0m".format(message=message)
+    nuke.tprint(consoleMessage)
+    if nuke.GUI:
+        nuke.tcl('alert "{message}"'.format(message=message))
