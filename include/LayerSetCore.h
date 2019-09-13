@@ -59,11 +59,11 @@ public:
     LayerMap();
     LayerMap(const LayerMap&);
     LayerMap(const StrMapType&);
-    LayerMap(const string);
+    LayerMap(const string&);
     virtual ~LayerMap();
 
-    StrVecType operator[](const StrVecType&);
-    StrVecType operator[](const string);
+    StrVecType operator[](const StrVecType&) const;
+    StrVecType operator[](const string&) const;
 
     //adds to category a layer
     void add(const string, const string);
@@ -103,7 +103,8 @@ public:
     // returns a LayerMap of categorized items, but filtered with a CategorizeFilter
     LayerMap categorizeLayers(const StrVecType&, const categorizeType&, const CategorizeFilter& catFilter) const;
     //The notion of topology is basically adding, for example ".red" to a layer name based on a topologyStyle.
-    LayerMap topology(const StrVecType&, const topologyStyle&);
+    //Unknown layer names return as .red, .green, .blue, .alpha or A, B, G, R
+    LayerMap topology(const StrVecType&, const topologyStyle&) const;
 
     // houses the map to channel configurations
     LayerMap channels;

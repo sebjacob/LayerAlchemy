@@ -1,8 +1,5 @@
-/* 
- * File:   LayerSetCore.cpp
- * Author: sjacob
- * 
- * Created on October 9, 2018, 10:52 p.m.
+/*
+ * implementation code for the LayerMap and LayerCollection objects
  */
 
 #include <iostream>
@@ -24,38 +21,39 @@ LayerMap::LayerMap(const StrMapType& other)
 LayerMap::~LayerMap() {
 }
 
-LayerMap::LayerMap(const string yamlFilePath) : strMap(loadConfigToMap(yamlFilePath)) {
+LayerMap::LayerMap(const string& yamlFilePath) : strMap(loadConfigToMap(yamlFilePath)) {
 }
 
-StrVecType LayerMap::operator[](const StrVecType& categoryNames) {
+StrVecType LayerMap::operator[](const StrVecType& categoryNames) const {
     StrVecType items;
-    StrVecType::const_iterator it, it2;
-
-    for (it = categoryNames.begin(); it != categoryNames.end(); it++) {
-        StrVecType catego = strMap[*it];
-
-        if (catego.size() != 0) {
-            for (it2 = catego.begin(); it2 != catego.end(); it2++) {
-                items.push_back(*it2);
+    for (auto it = categoryNames.begin(); it != categoryNames.end(); it++) {
+        if (strMap.find(*it) != strMap.end()) {
+            StrVecType categories = strMap.at(*it);
+            if (categories.size() != 0) {
+                for (auto it2 = categories.begin(); it2 != categories.end(); it2++) {
+                    items.push_back(*it2);
+                }
             }
         }
     }
     return items;
 }
 
-StrVecType LayerMap::operator[](const string category) {
-    StrVecType items;
-    if (strMap.find(category) != strMap.end()) {
-        return strMap[category];
+StrVecType LayerMap::operator[](const string& categoryName) const {
+    if (strMap.find(categoryName) != strMap.end()) {
+        return strMap.at(categoryName);
     } else {
-        return items;
+        return StrVecType();
     }
 }
 
 bool LayerMap::isMember(const string& categoryName, const string& layer) const {
-    StrVecType layerVec = strMap.find(categoryName)->second;
-    bool contains = find(begin(layerVec), end(layerVec), layer) != layerVec.end();
-    return contains;
+    auto it = strMap.find(categoryName);
+    if (it != strMap.end()) {
+        return find(begin(it->second), end(it->second), layer) != it->second.end();
+    } else {
+        return false;
+    }
 }
 
 void LayerMap::add(const string categoryName, const string layer) {
@@ -72,9 +70,8 @@ const StrVecType LayerMap::categories() const {
     StrVecType itemKeys;
     itemKeys.reserve(strMap.size());
     for (auto& kvp : strMap) {
-        const string& categoryName = kvp.first;
-        if (0 != categoryName.find("_")) {
-            itemKeys.emplace_back(categoryName);
+        if (kvp.first.find("_") != 0) {
+            itemKeys.emplace_back(kvp.first);
         }
     }
     return itemKeys;
@@ -164,39 +161,30 @@ string LayerCollection::dePrefix(const string layerName) const {
             unPrefixedLayerName = prefixName;
         }
     }
-    if (unPrefixedLayerName.length() > 0) {
-        outputLayerName = unPrefixedLayerName;
-    } else {
-        outputLayerName = layerName;
-    }
-
-    return outputLayerName;
+    return (unPrefixedLayerName.length() > 0) ? unPrefixedLayerName : layerName;
 }
 
-bool LayerMap::contains(const string& element) const {
+bool LayerMap::contains(const string& categoryName) const {
     StrVecType categories = this->categories();
-    bool result = std::any_of(categories.begin(), categories.end(), [element](const string & str) {
-        return str == element; });
+    bool result = std::any_of(categories.begin(), categories.end(), [categoryName](const string & str) {
+        return str == categoryName; });
     return result;
 }
 
-bool LayerMap::contains(const StrVecType& elements) const {
+bool LayerMap::contains(const StrVecType& categoryNames) const {
     StrVecType categories = this->categories();
-    return std::includes(categories.begin(), categories.end(), elements.begin(), elements.end());
+    return std::includes(categories.begin(), categories.end(), categoryNames.begin(), categoryNames.end());
 }
 
-string utilities::getLayerFromChannel(const string& layer) {
-    string dot = ".";
-    auto end = layer.find(dot);
-    return layer.substr(0, end);
+string utilities::getLayerFromChannel(const string& layerName) {
+    return layerName.substr(0, layerName.find("."));
 };
 
 StrVecType utilities::applyChannelNames(const string& layerName, const StrVecType& topologyVector) {
     StrVecType channelNames;
     channelNames.reserve(topologyVector.size());
     for (StrVecType::const_iterator iterChannel = topologyVector.begin(); iterChannel != topologyVector.end(); iterChannel++) {
-        string chan = layerName + "." + *iterChannel;
-        channelNames.emplace_back(chan);
+        channelNames.emplace_back(layerName + "." + *iterChannel);
     }
     return channelNames;
 }
@@ -262,39 +250,34 @@ LayerMap LayerCollection::categorizeLayers(const StrVecType& layersToCategorize,
     return categorizedLayerMap;
 };
 
-LayerMap LayerCollection::topology(const StrVecType& layerNames, const topologyStyle& reference) {
-    StrVecType::const_iterator iterCategory, iterLayer, iterChannel;
-    string topoKey = "_vec4";
-    if (reference == topologyStyle::exr) {
-        topoKey += "_exr";
-    }
+LayerMap LayerCollection::topology(const StrVecType& layerNames, const topologyStyle& style) const {
+    // in the channel config file, naming is defined by _vec4_exr _vec4
+    const string defaultCategory =  "_vec4";
+    const string exrToken = "_exr";
+    const string defaultTopology = style == topologyStyle::exr ? defaultCategory + exrToken : defaultCategory;
+    const StrVecType defaultChannels = channels[defaultTopology];
 
-    const StrVecType& topoNames = channels["topology"];
-    const StrVecType& vecTopoRGBA = channels[topoKey];
+    const StrVecType topoNames = channels[TOPOLOGY_KEY_LEXICAL]; // all styles derived from lexical
 
     LayerMap channelMapping;
     LayerMap categorized = categorizeLayers(layerNames, categorizeType::priv);
 
-    for (iterCategory = topoNames.begin(); iterCategory != topoNames.end(); iterCategory++) {
-        // todo, implement "hasAny" and "hasAll" methods to LayerMap class
+    for (auto iterCategory = topoNames.begin(); iterCategory != topoNames.end(); iterCategory++) {
         if (!categorized.contains(*iterCategory)) {
-            const StrVecType& categorizedLayers = categorized[*iterCategory];
-            string _topoType = *iterCategory;
-            if (reference == topologyStyle::exr) {
-                _topoType = *iterCategory + "_exr";
-            }
-            const StrVecType& thisTopo = channels[_topoType];
-            for (iterLayer = categorizedLayers.begin(); iterLayer != categorizedLayers.end(); iterLayer++) {
-                StrVecType channelNames = utilities::applyChannelNames(*iterLayer, thisTopo);
-                channelMapping.strMap[*iterLayer] = channelNames;
+            string _topoType = style == topologyStyle::exr ? *iterCategory + exrToken : *iterCategory;
+            StrVecType channelNames = channels[_topoType]; // look up channel names for this type
+            StrVecType categorizedLayers = categorized[*iterCategory];
+            for (auto iterLayer = categorizedLayers.begin(); iterLayer != categorizedLayers.end(); iterLayer++) {
+                channelMapping.strMap[*iterLayer] =  utilities::applyChannelNames(*iterLayer, channelNames);
             }
         }
     }
-    for (iterLayer = layerNames.begin(); iterLayer != layerNames.end(); iterLayer++) {
-        string layerName = utilities::getLayerFromChannel(*iterLayer); // in case
+    // this is for layers that are were not classified, make them RGBA
+    for (auto iterLayer = layerNames.begin(); iterLayer != layerNames.end(); iterLayer++) {
+        // in case channel names are used, get the layer name
+        string layerName = utilities::getLayerFromChannel(*iterLayer);
         if (!channelMapping.contains(layerName)) {
-            StrVecType channelNames = utilities::applyChannelNames(layerName, vecTopoRGBA);
-            channelMapping.strMap[layerName] = channelNames;
+            channelMapping.strMap[layerName] = utilities::applyChannelNames(layerName, defaultChannels);
         }
     }
     return channelMapping;
