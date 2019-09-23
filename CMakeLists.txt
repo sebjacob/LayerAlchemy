@@ -7,7 +7,7 @@ include(ExternalProject)
 
 set(PROJECT_NAME LayerAlchemy)
 set(LAYER_ALCHEMY_VERSION_MAJOR 0)
-set(LAYER_ALCHEMY_VERSION_MINOR 5)
+set(LAYER_ALCHEMY_VERSION_MINOR 6)
 set(LAYER_ALCHEMY_VERSION_PATCH 0)
 
 option(BUILD_APPS "Build binary applications" ON)
@@ -19,21 +19,18 @@ set(NUKE_ROOT "/opt/nuke/Nuke11.3v4" CACHE PATH "Path to Nuke install root")
 set(CMAKE_CXX_COMPILER g++)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "-O3 -fPIC -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -msse4.2 -mavx")
+set(CMAKE_CXX_FLAGS "-msse -O3")
+set(CMAKE_POSITION_INDEPENDENT_CODE ON) # Tells CMake to add -fPic flag.
 
-# Enable C++11
 if(UNIX AND NOT CYGWIN)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ")
 endif()
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
-    if(WIN32)
-        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS} -O2 -DNDEBUG -MT")
-    else()
-        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS} -O3 -DNDEBUG -Wall")
-    endif()
 endif()
+
+set(CMAKE_CXX_FLAGS_RELEASE ${CMAKE_CXX_FLAGS})
 
 # Placeholders for later, Nuke plugins can need this.
 #find_package(GLEW REQUIRED)
@@ -49,6 +46,17 @@ ExternalProject_Add(yaml_cpp
     BUILD_COMMAND "$(MAKE)"  # $(MAKE) (with parenthesis, not brackets) allows to inherits make -j multi-threads.
 )
 
+ExternalProject_Add(argparse
+    # A simple C++ header only command line argument parser
+    # Jesse Laning https://github.com/jamolnng
+    GIT_REPOSITORY https://github.com/jamolnng/argparse.git
+    GIT_TAG master
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+    CONFIGURE_COMMAND ""
+    UPDATE_COMMAND ""
+)
+
 link_directories(
     ${CMAKE_CURRENT_BINARY_DIR}/libs/lib
 )
@@ -56,6 +64,7 @@ link_directories(
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_CURRENT_BINARY_DIR}/libs/include
+    ${CMAKE_CURRENT_BINARY_DIR}/argparse-prefix/src/argparse
 )
 
 set(LAYERSET_LIBS 
@@ -83,12 +92,13 @@ install(
     DESTINATION ${CMAKE_INSTALL_PREFIX}
     FILES_MATCHING PATTERN "*.h*"
     PATTERN ".DS_Store" EXCLUDE
-    PATTERN "@@eaDir" EXCLUDE
+    PATTERN "@eaDir" EXCLUDE
 )
 
 if(BUILD_APPS)
     add_executable(LayerTester ${CMAKE_SOURCE_DIR}/src/LayerTester.cpp)
     add_executable(ConfigTester ${CMAKE_SOURCE_DIR}/src/ConfigTester.cpp)
+    add_dependencies(LayerTester argparse)
     target_link_libraries(LayerTester LayerSetCore LayerSetConfig)
     target_link_libraries(ConfigTester LayerSetCore LayerSetConfig)
     install(
@@ -143,5 +153,6 @@ endif(WIN32)
 add_custom_target(package
     COMMENT "creating package for ${PROJECT_PACKAGE_NAME}"
     COMMAND ${CMAKE_COMMAND} -E tar ${PROJECT_PACKAGE_COMMAND}
+    DEPENDS ${CMAKE_INSTALL_PREFIX} # make sure the install direcotry exists
 )
-list (APPEND EXCLUDE "CMakeLists.txt$" ".*" "@eaDir") # default excludes
+list (APPEND EXCLUDE "CMakeLists.txt$" ".*" "@eaDir" "*.pyc") # default excludes

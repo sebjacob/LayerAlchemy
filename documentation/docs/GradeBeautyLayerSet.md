@@ -21,7 +21,7 @@ same time
 
 | knob name | type | what it does |
 | --------- | ---- | ------------
-| layer_set | enumeration | decides which to [LayerSet](core.md#layersets) use |
+| layer_set | enumeration | decides which [LayerSet](core.md#layersets) to use |
 | output_mode | enumeration | specifies the type of output, add or copy
 | reset values | button | resets all color knobs to their defaults |
 

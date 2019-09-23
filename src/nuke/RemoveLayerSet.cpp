@@ -100,7 +100,6 @@ void RemoveLayerSet::engine(int y, int x, int r, ChannelMask c1, Row& out_row) {
 void RemoveLayerSet::knobs(Knob_Callback f) {
     layerSetKnob.createEnumKnob(f);
     createDocumentationButton(f);
-    createColorKnobResetButton(f);
     Divider(f, 0); // separates layer set knobs from the rest
 
     Enumeration_knob(f, &m_operation, enumOperation, "operation");

@@ -14,20 +14,14 @@ if(APPLE)
     get_filename_component(NUKE_ROOT ${nuke_main_executable} DIRECTORY)
     set(CMAKE_MACOSX_RPATH 1)
 endif()
-if(WIN32)
-    set(NUKE_INCLUDE_DIR ${NUKE_ROOT})
-else()
-    set(NUKE_INCLUDE_DIR ${NUKE_ROOT}/include
-)
-endif()
 
 include_directories(
-    ${NUKE_INCLUDE_DIR}
+    ${NUKE_ROOT}/include
     ${CMAKE_SOURCE_DIR}/include/nuke/
     ${CMAKE_SOURCE_DIR}/src/nuke/
 )
 
-find_library(NUKE_LIBRARIES DDImage ${NUKE_ROOT})
+find_library(LIB_DDIMAGE DDImage ${NUKE_ROOT})
 
 # get the Nuke version info
 file(READ ${NUKE_ROOT}/include/DDImage/ddImageVersionNumbers.h ver)
@@ -37,13 +31,14 @@ string(REGEX MATCH "#define kDDImageVersionMinorNum ([0-9]*)" _ ${ver})
 set(NUKE_MINOR ${CMAKE_MATCH_1})
 string(REGEX MATCH "#define kDDImageVersionReleaseNum ([0-9]*)" _ ${ver})
 set(NUKE_RELEASE_NUM ${CMAKE_MATCH_1})
-#set(NUKE_RELEASE ${NUKE_MAJOR}.${NUKE_MINOR})
+
 set(NUKE_RELEASE ${NUKE_MAJOR}.${NUKE_MINOR} CACHE STRING "" FORCE)
-mark_as_advanced(MY_CACHE_VARIABLE)
+set(NUKE_PLUGIN_DESTINATION nuke/plugins/${NUKE_RELEASE})
 
 set(NUKE_LAYERSET_LIBS
     LayerSet
 )
+
 # layer_alchemy libs
 foreach(LIB ${NUKE_LAYERSET_LIBS})
 
@@ -54,16 +49,15 @@ foreach(LIB ${NUKE_LAYERSET_LIBS})
     target_link_libraries(
         ${LIB}
         ${LAYERSET_LIBS}
-        ${NUKE_LIBRARIES}
+        ${LIB_DDIMAGE}
     )
-    set_target_properties(
-        ${LIB}
-        PROPERTIES PREFIX ""
+    set_target_properties(${LIB} PROPERTIES
+        PREFIX ""
     )
 
     install(
-      TARGETS ${LIB}
-      ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        TARGETS ${LIB}
+        DESTINATION ${NUKE_PLUGIN_DESTINATION}
     )
 endforeach()
 
@@ -80,25 +74,25 @@ set(NUKE_PLUGINS
 
 foreach(PLUGIN ${NUKE_PLUGINS})
 
-    add_library(${PLUGIN}
-        SHARED
+    add_library(${PLUGIN} SHARED
         ${CMAKE_SOURCE_DIR}/src/nuke/${PLUGIN}.cpp
     )
 
     target_link_libraries(${PLUGIN}
         ${LAYERSET_LIBS}
         LayerSet
-        ${NUKE_LIBRARIES}
+        ${LIB_DDIMAGE}
     )
 
-    set_target_properties(
-        ${PLUGIN}
-        PROPERTIES PREFIX ""
+    set_target_properties(${PLUGIN} PROPERTIES
+        PREFIX ""
+        COMPILE_FLAGS ""
+        LINK_FLAGS ""
     )
 
     install(
         TARGETS ${PLUGIN}
-        DESTINATION nuke/plugins
+        DESTINATION ${NUKE_PLUGIN_DESTINATION}
     )
 endforeach()
 

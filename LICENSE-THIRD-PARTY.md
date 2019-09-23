@@ -1,9 +1,9 @@
 See [LICENSE.md](LICENSE.md) for the main open source license of original
-code written for the layer_alchemy project.
+code written for the LayerAlchemy project.
 
 The remainder of this file reproduces the open source licensing details
 of other projects that have been imported, incorporated into, or derived
-into parts of layer_alchemy.
+into parts of LayerAlchemy.
 
 -------------------------------------------------------------------------
 
@@ -35,5 +35,24 @@ THE SOFTWARE.
 
 -------------------------------------------------------------------------
 
-If we have left anything out, it is unintentional. Please let us know.
+argparse
 
+https://github.com/jamolnng/argparse
+
+argparse license
+
+argparse.h is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License v3 as published by
+the Free Software Foundation.
+
+argparse.h is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with argparse.h.  If not, see <https://www.gnu.org/licenses/>.
+
+Author: Jesse Laning
+
+If we have left anything out, it is unintentional. Please let us know.

@@ -1,8 +1,5 @@
 /* 
- * File:   LayerSetConfig.cpp
- * Author: sjacob
- * 
- * Created on November 22, 2018, 6:14 p.m.
+ * implementation code focused on configuration file handling
  */
 #include "LayerSetConfig.h"
 
@@ -21,8 +18,8 @@ StrMapType _categoryMapFromConfig(YAML::Node& config) {
     return categoryMap;
 }
 
-StrMapType loadConfigToMap(const string& path) {
-    YAML::Node config = _loadConfigFromPath(path);
+StrMapType loadConfigToMap(const string& yamlFilePath) {
+    YAML::Node config = _loadConfigFromPath(yamlFilePath);
     StrMapType categoryMap = _categoryMapFromConfig(config);
     return categoryMap;
 }

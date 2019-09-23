@@ -22,8 +22,6 @@ namespace LayerSet {
      */
     class LayerSetKnobValueStore {
     public:
-        //stores the ChannelSet last used, useful to compare if an update is required, or can be skipped
-        DD::Image::ChannelSet channelSet { DD::Image::ChannelSet(DD::Image::Chan_Black)};
         //stores the layer set last used, useful to compare if an update is required, or can be skipped
         string categoryName {""};
         // stores full public layer categorization, regardless of the enumeration knob's update method
@@ -35,7 +33,9 @@ namespace LayerSet {
         //knob pointer to the enumeration knob
         DD::Image::Knob* selectedLayerKnob;
         //stores the result ChannelSet filtered by the knob. Basically, Channels that are in the selected LayerSet
-        DD::Image::ChannelSet selectedChannels; 
+        DD::Image::ChannelSet selectedChannels;
+        //stores the ChannelSet last used, useful to compare if an update is required, or can be skipped
+        DD::Image::ChannelSet channelSet;
     };
     /**
      * Wrapper class for adding a "LayerSet enabled Enumeration Knob"
@@ -74,7 +74,7 @@ namespace LayerSet {
         void setItem(const int);
         void setEnumKnob(DD::Image::Knob*);
         //current layer set  name set on the enumeration knob
-        int getSelectedItemIndex();
+        int getSelectedItemIndex() const;
         LayerSetKnobValueStore* ptrLayerSetKnobValueStore;
 
     public:
@@ -85,22 +85,22 @@ namespace LayerSet {
         ~LayerSetKnobWrapper();
         //pointer to current ChannelSet configured in this instance
         const DD::Image::ChannelSet* ptrConfiguredChannels;
-        //returns a new ChannelSet  with channels configured in this instance
-        DD::Image::ChannelSet configuredChannelSet();
-        //current layer set  name set on the enumeration knob, not the current configured item (user could have changed it)
-        string getSelectedItemString();
-        //current layer set  name configured in this instance, not the current layer set  name set on the enumeration knob
-        string configuredLayerSetName();
+        //returns a new ChannelSet with channels configured in this instance
+        DD::Image::ChannelSet configuredChannelSet() const;
+        //current layer set name set on the enumeration knob, not the current configured item (user could have changed it)
+        string getSelectedItemString() const;
+        //current layer set name configured in this instance, not the current layer set  name set on the enumeration knob
+        string configuredLayerSetName() const;
         //returns <b>selected</b> the layer names configured in this instance.
-        StrVecType configuredLayerNames();
+        StrVecType configuredLayerNames() const;
         //returns all the layer set names configured in this instance
-        const StrVecType configuredCategoryNames();
+        StrVecType configuredCategoryNames() const;
         //tests if the the current state contains a certain layer set, by name
-        bool contains(const string&);
+        bool contains(const string&) const;
         //tests if a ChannelSet is equal to the current state, useful to quickly judge if any updating is required
-        bool channelsChanged(const DD::Image::ChannelSet&);
+        bool channelsChanged(const DD::Image::ChannelSet&) const;
         //tests if the enumeration knob's current value is the same value as the configured state
-        bool categoryChanged();
+        bool categoryChanged() const;
         //this should be run before updating, will test the input ChannelSet and the current state of this instance
         bool validateChannels(DD::Image::Op*, LayerCollection&, const DD::Image::ChannelSet&);
         //private function to actually do the value setting and management of the knob

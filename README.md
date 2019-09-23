@@ -24,8 +24,8 @@ cmake /path/to/git/cloned/LayerAlchemyDir -DNUKE_ROOT=/Applications/Nuke11.3v4 -
 ```
 ```code
 make # compile the code
-make install # copies the compiled files to the install directory
 make documentation # build the documentation, needs mkdocs (pip install mkdocs)
+make install # copies the compiled files to the install directory
 make package # creates a compressed file containing the project
 ```
 ### Nuke Plugins
