@@ -19,7 +19,8 @@ set(NUKE_ROOT "/opt/nuke/Nuke11.3v4" CACHE PATH "Path to Nuke install root")
 set(CMAKE_CXX_COMPILER g++)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "-fPIC -msse -O3")
+set(CMAKE_CXX_FLAGS "-msse -O3")
+set(CMAKE_POSITION_INDEPENDENT_CODE ON) # Tells CMake to add -fPic flag.
 
 if(UNIX AND NOT CYGWIN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ")
