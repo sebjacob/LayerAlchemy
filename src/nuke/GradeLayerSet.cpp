@@ -18,7 +18,8 @@ const char* const HELP =
 #include <DDImage/DDMath.h>
 #include <DDImage/NukeWrapper.h>
 
-#include <LayerSet.h>
+#include "LayerSet.h"
+#include "LayerSetKnob.h"
 
 using namespace DD::Image;
 using namespace LayerSet;
@@ -26,6 +27,8 @@ using namespace LayerSet;
 static const char* const CLASS = "GradeLayerSet";
 
 class GradeLayerSet : public PixelIop {
+
+private:
     float blackpoint[4];
     float whitepoint[4];
     float black[4];
@@ -36,10 +39,18 @@ class GradeLayerSet : public PixelIop {
     bool reverse;
     bool black_clamp;
     bool white_clamp;
-    LayerSetKnobWrapper layerSetKnob;
+    LayerSetKnobData m_lsKnobData;
 
 public:
-
+    void knobs(Knob_Callback);
+    void _validate(bool);
+    bool pass_transform() const {return true;}
+    void in_channels(int, ChannelSet&) const;
+    void pixel_engine(const Row&, int, int, int, ChannelMask, Row&);
+    const char* Class() const {return description.name;}
+    const char* node_help() const {return HELP;}
+    static const Iop::Description description;
+    ChannelSet activeChannelSet() const {return ChannelSet(m_lsKnobData.m_selectedChannels);}
     GradeLayerSet(Node* node) : PixelIop(node) {
         for (int n = 0; n < 4; n++) {
             black[n] = blackpoint[n] = add[n] = 0.0f;
@@ -50,21 +61,19 @@ public:
         black_clamp = true;
         white_clamp = false;
     }
-    void in_channels(int, ChannelSet& channels) const;
-    void pixel_engine(const Row &in, int y, int x, int r, ChannelMask, Row &);
-    virtual void knobs(Knob_Callback);
+    ~GradeLayerSet();
 
-    const char* Class() const {
-        return CLASS;
-    }
-
-    const char* node_help() const {
-        return HELP;
-    }
-    static const Iop::Description d;
-
-    void _validate(bool for_real);
 };
+static Op* build(Node* node) {
+    return (new NukeWrapper(new GradeLayerSet(node)))->noChannels();
+}
+GradeLayerSet::~GradeLayerSet() {}
+
+const Iop::Description GradeLayerSet::description(
+    "GradeLayerSet",
+    "LayerAlchemy/GradeLayerSet",
+    build
+);
 
 void GradeLayerSet::in_channels(int input, ChannelSet& mask) const {
 //mask is unchanged
@@ -81,23 +90,17 @@ void GradeLayerSet::_validate(bool for_real) {
             change_zero = true;
         }
     }
-    copy_info(); // this copies the input info to the output
     if (change_zero) {
         info_.black_outside(false);
     }
-
+    copy_info(); // this copies the input info to the output
     ChannelSet inChannels = info_.channels();
-    bool valid = layerSetKnob.validateChannels(this, layerCollection, inChannels);
 
-    if (!valid) {
-        return;
+    if (validateLayerSetKnobUpdate(this, m_lsKnobData, layerCollection, inChannels)) {
+        updateLayerSetKnob(this, m_lsKnobData, layerCollection, inChannels);
     }
-
-    if (layerSetKnob.channelsChanged(inChannels) || (layerSetKnob.categoryChanged())) {
-        layerSetKnob.update(layerCollection, inChannels);
-    }
-    set_out_channels(layerSetKnob.configuredChannelSet());
-    layerSetKnob.setNodeLabel(this);
+    set_out_channels(activeChannelSet());
+    setLayerSetNodeLabel(this);
 }
 
 void GradeLayerSet::pixel_engine(const Row& in, int y, int x, int r,
@@ -230,7 +233,7 @@ void GradeLayerSet::pixel_engine(const Row& in, int y, int x, int r,
 }
 
 void GradeLayerSet::knobs(Knob_Callback f) {
-    layerSetKnob.createEnumKnob(f);
+    LayerSet::LayerSetKnob(f, m_lsKnobData);
     createDocumentationButton(f);
     createColorKnobResetButton(f);
     Divider(f, 0); // separates layer set knobs from the rest
@@ -257,8 +260,3 @@ void GradeLayerSet::knobs(Knob_Callback f) {
     Bool_knob(f, &white_clamp, "white_clamp", "white clamp");
     Tooltip(f, "Output that is greater than 1 is changed to 1");
 }
-
-static Iop* build(Node* node) {
-    return (new NukeWrapper(new GradeLayerSet(node)))->noChannels()->mixLuminance();
-}
-const Iop::Description GradeLayerSet::d(CLASS, "LayerAlchemy/GradeLayerSet", build);

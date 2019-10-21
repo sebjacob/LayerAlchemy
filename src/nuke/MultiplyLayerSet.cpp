@@ -4,63 +4,59 @@
 #include <DDImage/NukeWrapper.h>
 
 #include "LayerSet.h"
+#include "LayerSetKnob.h"
 
 using namespace DD::Image;
 using namespace LayerSet;
 
-static const char* const CLASS = "MultiplyLayerSet";
 static const char* const HELP = "Multiplies multiple channels using LayerSets";
 
 class MultiplyLayerSet : public PixelIop {
+
 private:
-    // multiply value storage
+    int index;
     float m_multValue[4] = {1, 1, 1, 1};
-    LayerSetKnobWrapper layerSetKnob;
+    ChannelSet m_targetLayerSet;
+    LayerSetKnobData m_lsKnobData;
 
 public:
-
-    MultiplyLayerSet(Node* node) : PixelIop(node) {
-    }
-    ~MultiplyLayerSet();
-
-    virtual void knobs(Knob_Callback);
-    static const Iop::Description description;
-    const char* Class() const {return description.name;}
-    const char* node_help() const {return HELP;}
-
+    void knobs(Knob_Callback);
     void _validate(bool);
     bool pass_transform() const {return true;}
-    void in_channels(int input, ChannelSet& mask) const;
+    void in_channels(int, ChannelSet&) const;
     void pixel_engine(const Row &in, int y, int x, int r, ChannelMask, Row & out);
-    virtual int knob_changed(Knob* k);
+    const char* Class() const {return description.name;}
+    const char* node_help() const {return HELP;}
+    static const Iop::Description description;
+    // channel set that contains all channels that are modified by the node
+    ChannelSet activeChannelSet() const {return ChannelSet(m_lsKnobData.m_selectedChannels);}
+
+    MultiplyLayerSet(Node* node) : PixelIop(node) {}
+    ~MultiplyLayerSet();
 };
 
 // register
-static Iop* build(Node* node) {
-    return (new NukeWrapper(new MultiplyLayerSet(node)))->noChannels()->mixLuminance();
+static Op* build(Node* node) {
+    return (new NukeWrapper(new MultiplyLayerSet(node)))->noChannels()->noUnpremult();
 }
-const Iop::Description MultiplyLayerSet::description(CLASS, "LayerAlchemy/MultiplyLayerSet", build);
- 
-// de-constructor
-MultiplyLayerSet::~MultiplyLayerSet() {
-}
+
+MultiplyLayerSet::~MultiplyLayerSet() {}
+
+const Iop::Description MultiplyLayerSet::description(
+    "MultiplyLayerSet",
+    "LayerAlchemy/MultiplyLayerSet",
+    build
+);
 
 // update layer set knob and gather selectedChannels
 void MultiplyLayerSet::_validate(bool for_real) {
     copy_info(); // this copies the input info to the output
     ChannelSet inChannels = info_.channels();
-    bool valid = layerSetKnob.validateChannels(this, layerCollection, inChannels);
-
-    if (!valid) {
-        return;
+    if (validateLayerSetKnobUpdate(this, m_lsKnobData, layerCollection, inChannels)) {
+        updateLayerSetKnob(this, m_lsKnobData, layerCollection, inChannels);
     }
-
-    if (layerSetKnob.channelsChanged(inChannels) || (layerSetKnob.categoryChanged())) {
-        layerSetKnob.update(layerCollection, inChannels);
-    }
-    set_out_channels(layerSetKnob.configuredChannelSet());
-    layerSetKnob.setNodeLabel(this);
-
+    set_out_channels(activeChannelSet());
+    setLayerSetNodeLabel(this);
 }
 
 void MultiplyLayerSet::in_channels(int input, ChannelSet& mask) const {
@@ -80,12 +76,8 @@ void MultiplyLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelM
 }
 
 void MultiplyLayerSet::knobs(Knob_Callback f) {
-    layerSetKnob.createEnumKnob(f);
+    LayerSet::LayerSetKnob(f, m_lsKnobData);
     createDocumentationButton(f);
     Divider(f, 0); // separates layer set knobs from the rest
     AColor_knob(f, m_multValue, IRange(0, 4), "value");
-}
-
-int MultiplyLayerSet::knob_changed(Knob* k) {
-    return 1;
 }

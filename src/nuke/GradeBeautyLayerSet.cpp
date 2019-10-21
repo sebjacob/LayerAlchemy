@@ -6,6 +6,7 @@
 #include <DDImage/NukeWrapper.h>
 
 #include "LayerSet.h"
+#include "LayerSetKnob.h"
 
 static const char* const HELP =
         "Provides artist friendly controls to manipulate multichannel cg render passes\n\n"
@@ -21,8 +22,6 @@ static const char* const HELP =
         "    * To change this, you must modify the configuration files accordingly\n\n"
         "    * <i>more info with the documentation button</i>"
         ;
-
-static const char* const CLASS = "GradeBeautyLayerSet";
 
 // patch for linux alphas because the pow function behaves badly
 // for very large or very small exponent values.
@@ -49,6 +48,8 @@ static const StrVecType all = {
 static const CategorizeFilter CategorizeFilterAllBeauty(all, CategorizeFilter::modes::INCLUDE);
 
 class GradeBeautyLayerSet : public PixelIop {
+
+private:
     float blackpoint[4]{0.0f, 0.0f, 0.0f, 0.0f};
     float whitepoint[4]{1.0f, 1.0f, 1.0f, 1.0f};
     float lift[4]{0.0f, 0.0f, 0.0f, 0.0f};
@@ -60,7 +61,7 @@ class GradeBeautyLayerSet : public PixelIop {
     bool clampBlack{true};
     bool clampWhite{false};
     int m_operation{operationModes::ADD};
-    LayerSetKnobWrapper layerSetKnob;
+    LayerSetKnobData m_lsKnobData;
     ChannelSet m_targetLayer{Mask_RGB};
     // intermediate grade algorithm storage
     float A[3]{0.0f, 0.0f, 0.0f};
@@ -68,51 +69,43 @@ class GradeBeautyLayerSet : public PixelIop {
     float G[3]{0.0f, 0.0f, 0.0f};
 
 public:
-
-    bool pass_transform() const {
-        return true;
-    }
-    void append(Hash&);
+    void knobs(Knob_Callback);
     void _validate(bool for_real);
+    bool pass_transform() const {return true;}
     void in_channels(int, ChannelSet& channels) const;
     void pixel_engine(const Row&, int, int, int, ChannelMask, Row&);
-    void knobs(Knob_Callback);
     int knob_changed(Knob*);
+    const char* Class() const {return description.name;}
+    const char* node_help() const {return HELP;}
+    static const Iop::Description description;
+
     float validateGammaValue(const float&);
     // This function calculates and stores the grade algorithm's intermediate calculations
     void precomputeValues();
-
-    const char* Class() const {
-        return CLASS;
-    }
-
-    const char* node_help() const {
-        return HELP;
-    }
-    static const Iop::Description description;
+    // channel set that contains all channels that are modified by the node
+    ChannelSet activeChannelSet() const {return ChannelSet(m_targetLayer + m_lsKnobData.m_selectedChannels);}
 
     GradeBeautyLayerSet(Node* node) : PixelIop(node) { //printf("created GradeBeautyLayerSet %p\n", (void*) this);
         precomputeValues();
     }
-
-    ~GradeBeautyLayerSet() {
-    }
+    ~GradeBeautyLayerSet();
 };
 
-void GradeBeautyLayerSet::append(Hash& hash) {
-    hash.append(m_operation);
-    hash.append(layerSetKnob.configuredLayerSetName());
+
+static Op* build(Node* node) {
+    return (new NukeWrapper(new GradeBeautyLayerSet(node)))->noChannels();
 }
 
-static Iop* build(Node* node) {
-    return (new NukeWrapper(new GradeBeautyLayerSet(node)))->noChannels()->mixLuminance();
+GradeBeautyLayerSet::~GradeBeautyLayerSet() {}
 
-}
-
-const Iop::Description GradeBeautyLayerSet::description(CLASS, "LayerAlchemy/GradeBeautyLayerSet", build);
+const Iop::Description GradeBeautyLayerSet::description(
+    "GradeBeautyLayerSet",
+    "LayerAlchemy/GradeBeautyLayerSet",
+    build
+);
 
 void GradeBeautyLayerSet::in_channels(int input_number, ChannelSet& mask) const {
-    mask += (m_targetLayer + *(layerSetKnob.ptrConfiguredChannels));
+    mask += activeChannelSet();
 }
 
 void GradeBeautyLayerSet::precomputeValues() {
@@ -138,62 +131,53 @@ void GradeBeautyLayerSet::_validate(bool for_real) {
             }
         }
     }
-    copy_info(); // this copies the input info to the output
     info_.black_outside(!changeZero);
-
+    copy_info(); // this copies the input info to the output
     ChannelSet inChannels = info_.channels();
-    bool valid = layerSetKnob.validateChannels(this, layerCollection, inChannels);
-
-    if (!valid) {
-        return;
+    if (validateLayerSetKnobUpdate(this, m_lsKnobData, layerCollection, inChannels, CategorizeFilterAllBeauty)) {
+        updateLayerSetKnob(this, m_lsKnobData, layerCollection, inChannels, CategorizeFilterAllBeauty);
     }
-
-    if (layerSetKnob.channelsChanged(inChannels) || (layerSetKnob.categoryChanged())) {
-        layerSetKnob.update(layerCollection, inChannels, CategorizeFilterAllBeauty);
-    }
-    set_out_channels(m_targetLayer + *(layerSetKnob.ptrConfiguredChannels));
-    layerSetKnob.setNodeLabel(this);
+    set_out_channels(activeChannelSet());
+    setLayerSetNodeLabel(this);
 }
 
 void GradeBeautyLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelMask channels, Row& out) {
+    ChannelSet processChans = activeChannelSet();
     map<int, float*> targetRowPtrIdxMap;
-    Row preRow(x, r); // store the initial target layer
 
-    foreach(channel, m_targetLayer) {
-        int chanIdx = colourIndex(channel);
-        if (chanIdx <= 2) {
-            preRow.copy(in, channel, x, r);
-            targetRowPtrIdxMap[chanIdx] = out.writableConstant(0, channel) + x; // zero out the target layer output pixels
-        } else {
-            out.copy(in, channel, x, r);
-            continue;
-        }
-        if (m_operation == operationModes::ADD) {
-            out.copy(preRow, channel, x, r);
+    Row aRow(x, r); // store the initial target layer
+    aRow.copy(in, processChans, x, r);
+
+    foreach(z, m_targetLayer) {
+        int chanIdx = colourIndex(z);
+        targetRowPtrIdxMap[chanIdx] = aRow.writableConstant(0.0f, z) + x;
+        if (m_operation == operationModes::ADD)
+        {
+            aRow.copy(in, z, x, r);
         }
     }
-    if (aborted()) {
-        return;
-    }
 
-    foreach(channel, layerSetKnob.configuredChannelSet()) {
-        if (aborted()) {
-            return;
-        }
+    foreach(channel, m_lsKnobData.m_selectedChannels) {
         int chanIdx = colourIndex(channel);
-        if ((targetRowPtrIdxMap.find(chanIdx) == targetRowPtrIdxMap.end()) || (chanIdx > 2)) {
-            out.copy(in, channel, x, r);
+        if (
+        (targetRowPtrIdxMap.find(chanIdx) == targetRowPtrIdxMap.end())
+        || chanIdx > 2
+        || aRow.is_zero(channel)
+        || m_targetLayer.contains(channel)) {
             continue;
         }
         float* btyChanPtr = targetRowPtrIdxMap[chanIdx];
-        const float* inPtr = in[channel] + x;
-        const float* inPtrEnd = inPtr + (r - x);
-        float* outPtr = out.writable(channel) + x;
+//        const float* pArow = aRow[channel] + x;
+//        const float* pArowEnd = pArow + (r - x);
+//        float* outPtr = aRow.writable(channel) + x;
+        float* pArow = aRow.writable(channel) + x;
+        float* pArowEnd = pArow + (r - x);
+
         float* ptrA = &A[chanIdx];
         float* ptrB = &B[chanIdx];
         float* ptrG = &G[chanIdx];
 
-        for (const float* i = inPtr; i != inPtrEnd; i++) {
+        for (float* i = pArow; i != pArowEnd; i++) {
             float outPixel = *i;
             float btyPixelValue = *btyChanPtr;
 
@@ -267,23 +251,24 @@ void GradeBeautyLayerSet::pixel_engine(const Row& in, int y, int x, int r, Chann
                 }
             }
             *btyChanPtr = btyPixelValue;
-            *outPtr = outPixel;
-            outPtr++;
+            *i = outPixel;
+            pArow++;
             btyChanPtr++;
         }
     }
+    out.copy(aRow, processChans, x, r);
 }
 
 void GradeBeautyLayerSet::knobs(Knob_Callback f) {
-    layerSetKnob.createEnumKnob(f);
+    LayerSet::LayerSetKnob(f, m_lsKnobData);
     createDocumentationButton(f);
     createColorKnobResetButton(f);
-    Input_ChannelMask_knob(f, &m_targetLayer, 0, "target layer");
-    SetFlags(f, Knob::NO_ALPHA_PULLDOWN);
-    Tooltip(f, "<p>Selects which layer to pre-subtract layers from (if enabled) and offset the modified layers to</p>");
 
     Divider(f, 0); // separates layer set knobs from the rest
 
+    Input_ChannelMask_knob(f, &m_targetLayer, 0, "target layer");
+    SetFlags(f, Knob::NO_ALPHA_PULLDOWN);
+    Tooltip(f, "<p>Selects which layer to pre-subtract layers from (if enabled) and offset the modified layers to</p>");
     Enumeration_knob(f, &m_operation, operationNames, "output mode");
     Tooltip(f,
             "<p>add : the additive sum of the chosen layer set is subtracted from the target layer "

@@ -37,6 +37,7 @@ set(NUKE_PLUGIN_DESTINATION nuke/plugins/${NUKE_RELEASE})
 
 set(NUKE_LAYERSET_LIBS
     LayerSet
+    LayerSetKnob
 )
 
 # layer_alchemy libs
@@ -80,7 +81,7 @@ foreach(PLUGIN ${NUKE_PLUGINS})
 
     target_link_libraries(${PLUGIN}
         ${LAYERSET_LIBS}
-        LayerSet
+        ${NUKE_LAYERSET_LIBS}
         ${LIB_DDIMAGE}
     )
 

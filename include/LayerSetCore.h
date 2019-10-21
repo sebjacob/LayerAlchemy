@@ -83,6 +83,8 @@ public:
     const StrVecType uniqueLayers() const;
     //returns the contents of the object in string form
     string toString() const;
+    bool empty() const;
+    int size() const;
 };
 
 /**
