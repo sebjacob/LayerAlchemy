@@ -240,6 +240,7 @@ void GradeBeauty::_validate(bool for_real) {
         setKnobVisibility();
         setKnobRanges(m_mathMode, false);
         setKnobDefaultValue(this);
+        _validate(true); // this will refresh the node UI in case the node was blank
     }
     
     calculateLayerValues(m_lsKnobData.m_selectedChannels, m_valueMap);
