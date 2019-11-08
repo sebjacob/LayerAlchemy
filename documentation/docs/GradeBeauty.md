@@ -42,7 +42,6 @@ Compositors:
 | target_layer | enumeration | selects which layer to pre-subtract layers from (if enabled) and add the modified layers to |
 | math_type | enumeration | selects the color knob preference
 | subtract | bool | controls pre-subtracting the [LayerSet](core.md#layersets) from the target layer |
-| solo | bool | toggles the soloing of the last color knob's result
 | reset values | button | resets all color knobs to their defaults |
 
 ## [PixelIop](https://learn.foundry.com/nuke/developers/11.3/ndkdevguide/2d/pixeliops.html) Knobs
@@ -50,7 +49,6 @@ Compositors:
 | --------- | ---- | ------------ |
 | maskChannelInput | bool/ChannelKnob | selects which masking channel to use |
 | unpremult | bool/ChannelKnob | unpremults each relevant layer by this channel |
-| mix_luminance | float | mixes in input luminance with the result for all affected layers |
 | mix | float | mixes in input with the result |
 
 ## Knob value detail
@@ -72,22 +70,6 @@ This can happen, so it is enabled by default.
 | enabled | the additive sum of the chosen [LayerSet](core.md#layersets) is subtracted from the target layer before recombining with this node's modifications | <p><i>this means any difference between the target layer and the render layers is kept in the final output</i></p>
 | disabled | bypasses aov/target layer pre-subtraction | _when this is disabled, it replaces the target layer with the result_
 
-### solo
-
-!!! danger "CURRENTLY NOT SAVED, don't rely on it as an output"
-    
-    Meant as a ***non persistent*** convenience visualizer.
-    
-    Sometimes, you want to view what's going on under the hood.
-    
-    This shows you what each slider is doing, as some sliders actually drive multiple layers.
-         
-    _Depending on feedback, could be made a part of the node processing in a future version._
-
-    | value | what it does | notes |
-    | ----- | ------------ | ----- |
-    | enabled | outputs the additive sum of the layers being affected by the last color knob that was changed | <i>(this is meant to help visualize layer set  contributions)</i></p>
-    | disabled | bypasses solo processing | |
 
 ## Arnold 5 LayerSets
 

@@ -114,6 +114,13 @@ string LayerMap::toString() const {
     repr = reprStream.str();
     return repr;
 }
+bool LayerMap::empty() const {
+    return strMap.empty();
+}
+
+int LayerMap::size() const {
+    return strMap.size();
+}
 
 const StrVecType LayerMap::categoriesByType(const categorizeType& catType) const {
     StrVecType relevantCats;

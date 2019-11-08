@@ -76,6 +76,7 @@ specular: !!set &arnold_specular
   ? specular_indirect
 
 direct: !!set &arnold_direct
+  ? direct
   ? coat_direct
   ? diffuse_direct
   ? sheen_direct
@@ -85,6 +86,7 @@ direct: !!set &arnold_direct
   ? volume_direct
 
 indirect: !!set &arnold_indirect
+  ? indirect
   ? coat_indirect
   ? diffuse_indirect
   ? sheen_indirect
@@ -156,7 +158,6 @@ beauty_shading: !!set &arnold_beauty_shading
 
 beauty_shading_global: !!set &arnold_beauty_shading_global
   ? background
-  ? coat
   ? diffuse
   ? specular
   ? sss

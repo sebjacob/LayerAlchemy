@@ -7,7 +7,7 @@ include(ExternalProject)
 
 set(PROJECT_NAME LayerAlchemy)
 set(LAYER_ALCHEMY_VERSION_MAJOR 0)
-set(LAYER_ALCHEMY_VERSION_MINOR 6)
+set(LAYER_ALCHEMY_VERSION_MINOR 7)
 set(LAYER_ALCHEMY_VERSION_PATCH 0)
 
 option(BUILD_APPS "Build binary applications" ON)
@@ -15,7 +15,7 @@ option(BUILD_DOCS "Build html documentation" ON)
 option(BUILD_NUKE "Build the Nuke plugins" ON)
 option(VERBOSE "Add more verbosity to cmake" OFF)
 
-set(NUKE_ROOT "/opt/nuke/Nuke11.3v4" CACHE PATH "Path to Nuke install root")
+set(NUKE_ROOT "/opt/nuke/Nuke12.0v1" CACHE PATH "Path to Nuke install root")
 set(CMAKE_CXX_COMPILER g++)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
