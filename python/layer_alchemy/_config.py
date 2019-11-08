@@ -60,7 +60,7 @@ def _save(collapsedConfigs, yamlFile):
 def _add(configDictList, sort=False):
     """
     Accumulates a list of dictionaries into one output dictionary
-    :param list configDictList: all the config dictionaleirs to process
+    :param list configDictList: all the config dictionaries to process
     :param bool sort: as an option, soft the values
     :return: a dict that contains all keys and values
     :rtype dict

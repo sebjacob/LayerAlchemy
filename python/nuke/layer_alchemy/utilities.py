@@ -8,6 +8,16 @@ import nuke
 import constants
 
 
+def pluginAddPaths():
+    """
+    This validates that configuration files are present and valid
+    and adds the icon and plugin directories to Nuke's pluginPath
+    """
+    validateConfigFileEnvironmentVariables()
+    nuke.pluginAddPath(constants.LAYER_ALCHEMY_ICON_DIR)
+    nuke.pluginAddPath(_getPluginDirForCurrentNukeVersion())
+
+
 def getDocumentationIndexPath():
     """
     Find the absolute path to the documentation's main index.html file
@@ -28,7 +38,7 @@ def getNukeVersionString():
     return '{major}.{minor}'.format(major=nuke.env['NukeVersionMajor'], minor=nuke.env['NukeVersionMinor'])
 
 
-def getPluginDirForCurrentNukeVersion():
+def _getPluginDirForCurrentNukeVersion():
     """
     Utility Function to get the directory path relevant to the current nuke version
     :return: absolute directory path to plugin directory
