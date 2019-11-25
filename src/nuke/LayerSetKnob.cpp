@@ -20,10 +20,6 @@ DD::Image::Knob* LayerSetKnob(DD::Image::Knob_Callback& f, LayerSetKnobData& pLa
     SetFlags(f, DD::Image::Knob::STARTLINE);
     return layerSetKnob;
 }
-void setLayerSetNodeLabel(DD::Image::Op* t_op) {
-    const char* label = getLayerSetKnobEnumString(t_op).c_str();
-    t_op->knob("label")->set_text(label);
-}
 
 string getLayerSetKnobEnumString(DD::Image::Op* t_op) {
     return t_op->knob(LAYER_SET_KNOB_NAME)->enumerationKnob()->getSelectedItemString();
@@ -78,74 +74,77 @@ void updateLayerSetKnob(DD::Image::Op* t_op, LayerSetKnobData& layerSetKnobData,
     }
 }
 
-bool _preValidateLayerSetKnobUpdate(DD::Image::Op* t_op, const LayerSetKnobData& layerSetKnobData, const DD::Image::ChannelSet& inChannels)
+bool _basicValidateLayerSetKnobUpdate(DD::Image::Op* t_op, const LayerSetKnobData& layerSetKnobData, const DD::Image::ChannelSet& inChannels)
 {
     string currentLayerName = getLayerSetKnobEnumString(t_op);
     //printf("validateLayerSetKnobUpdate categorizeFilter : %s\n", currentLayerName.c_str());
-    bool requiresUpdate = false;
 
     if (inChannels == DD::Image::Chan_Black || inChannels.empty()) 
     {
         // printf("validateLayerSetKnobUpdate categorizeFilter : empty input channels\n");
         return false;
     }
-    else if (layerSetKnobData.m_allChannels.empty() || layerSetKnobData.m_allChannels != inChannels)// || !inChannels.contains(layerSetKnobData.m_selectedChannels))
+    if (layerSetKnobData.m_allChannels.empty() || layerSetKnobData.m_allChannels != inChannels)
     {
         // printf("validateLayerSetKnobUpdate categorizeFilter : different input channelset or m_allChannels empty=%d\n", layerSetKnobData.m_allChannels.empty());
-        requiresUpdate = true;
+        return true;
     }
     else if (currentLayerName != layerSetKnobData.categoryName)
     {
         // printf("validateLayerSetKnobUpdate categorizeFilter : category changed\n");
-        requiresUpdate = true;
+        return true;
     }
     else if (currentLayerName == layerSetKnobData.categoryName)
     {
         // printf("validateLayerSetKnobUpdate categorizeFilter : category is the same\n");
-        requiresUpdate = false;
+        return  false;
     }
-    return requiresUpdate;
+    else
+    {
+        return false;
+    }
+    
+}
+bool _categorizedValidateLayerSetKnobUpdate(DD::Image::Op* t_op, const LayerMap& categorized, const string& currentLayerSetName)
+{
+    if (categorized.empty())
+    {
+        t_op->error("can't find any relevant layer set for this node");
+        return false;
+    }
+    else if (currentLayerSetName == "")
+    {
+        return true;
+    }
+    else if (!categorized.contains(currentLayerSetName))
+    {
+        t_op->error("input is missing the '%s' layer set", currentLayerSetName.c_str());
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+
 }
 
 bool validateLayerSetKnobUpdate(DD::Image::Op* t_op, const LayerSetKnobData& layerSetKnobData, LayerCollection& layerCollection, const DD::Image::ChannelSet& inChannels) {
-    string currentLayerName = getLayerSetKnobEnumString(t_op);
-    bool valid = _preValidateLayerSetKnobUpdate(t_op, layerSetKnobData, inChannels);
-    if (!valid) {
+    string currentLayerSetName = getLayerSetKnobEnumString(t_op);
+    if (!_basicValidateLayerSetKnobUpdate(t_op, layerSetKnobData, inChannels)) {
         return false;
     }
     StrVecType inLayers = LayerSet::getLayerNames(inChannels);
-    LayerMap categorized = layerCollection.categorizeLayers(inLayers, categorizeType::pub);
-    //printf("validateLayerSetKnobUpdate categorizeFilter : used categorized Layers \n");
-
-    bool validLayerSet = currentLayerName == "" ? true : categorized.contains(currentLayerName);
-
-    if (validLayerSet) {
-        //printf("validateLayerSetKnobUpdate categorizeFilter : categorizeLayers has %s true\n", currentLayerName.c_str());
-        return true;
-    } else {
-        t_op->error("input is missing the '%s' layer set", currentLayerName.c_str());
-        return false;
-    }
+    LayerMap categorized = layerCollection.categorizeLayers(LayerSet::getLayerNames(inChannels), categorizeType::pub);
+    return _categorizedValidateLayerSetKnobUpdate(t_op, categorized, currentLayerSetName);
 }
 
 bool validateLayerSetKnobUpdate(DD::Image::Op* t_op, const LayerSetKnobData& layerSetKnobData, LayerCollection& layerCollection, const DD::Image::ChannelSet& inChannels, const CategorizeFilter& categorizeFilter) {
-    string currentLayerName = getLayerSetKnobEnumString(t_op);
-    bool valid = _preValidateLayerSetKnobUpdate(t_op, layerSetKnobData, inChannels);
-    if (!valid) {
+    string currentLayerSetName = getLayerSetKnobEnumString(t_op);
+    if (!_basicValidateLayerSetKnobUpdate(t_op, layerSetKnobData, inChannels)) {
         return false;
     }
     StrVecType inLayers = LayerSet::getLayerNames(inChannels);
     LayerMap categorized = layerCollection.categorizeLayers(inLayers, categorizeType::pub, categorizeFilter);
-    // printf("validateLayerSetKnobUpdate categorizeFilter : used categorized Layers \n");
-
-    bool validLayerSet = currentLayerName == "" ? true : categorized.contains(currentLayerName);
-
-    if (validLayerSet) {
-        // printf("validateLayerSetKnobUpdate categorizeFilter : categorizeLayers has %s true\n", currentLayerName.c_str());
-        return true;
-    } else {
-        t_op->error("input is missing the '%s' layer set", currentLayerName.c_str());
-        return false;
-    }
+    return _categorizedValidateLayerSetKnobUpdate(t_op, categorized, currentLayerSetName);
 }
 }; //  LayerSet

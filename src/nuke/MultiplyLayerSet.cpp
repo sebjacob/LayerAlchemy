@@ -56,7 +56,6 @@ void MultiplyLayerSet::_validate(bool for_real) {
         updateLayerSetKnob(this, m_lsKnobData, layerCollection, inChannels);
     }
     set_out_channels(activeChannelSet());
-    setLayerSetNodeLabel(this);
 }
 
 void MultiplyLayerSet::in_channels(int input, ChannelSet& mask) const {

@@ -8,7 +8,7 @@ include(ExternalProject)
 set(PROJECT_NAME LayerAlchemy)
 set(LAYER_ALCHEMY_VERSION_MAJOR 0)
 set(LAYER_ALCHEMY_VERSION_MINOR 7)
-set(LAYER_ALCHEMY_VERSION_PATCH 0)
+set(LAYER_ALCHEMY_VERSION_PATCH 1)
 
 option(BUILD_APPS "Build binary applications" ON)
 option(BUILD_DOCS "Build html documentation" ON)

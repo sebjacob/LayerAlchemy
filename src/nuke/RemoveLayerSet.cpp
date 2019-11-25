@@ -57,7 +57,6 @@ void RemoveLayerSet::_validate(bool for_real) {
     if (validateLayerSetKnobUpdate(this, m_lsKnobData, layerCollection, inChannels)) {
         updateLayerSetKnob(this, m_lsKnobData, layerCollection, inChannels);
     }
-    setLayerSetNodeLabel(this);
 
     if (m_operation) { // keep
         info_.channels() &= m_lsKnobData.m_selectedChannels;

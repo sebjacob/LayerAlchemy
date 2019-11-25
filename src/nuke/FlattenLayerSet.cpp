@@ -80,7 +80,6 @@ void FlattenLayerSet::_validate(bool for_real) {
         updateLayerSetKnob(this, m_lsKnobData, layerCollection, inChannels);
     }
     set_out_channels(activeChannelSet());
-    setLayerSetNodeLabel(this);
 }
 
 void FlattenLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelMask channels, Row& out) {

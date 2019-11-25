@@ -34,6 +34,9 @@ static const char* DEFAULT_VALUE_PYSCRIPT =
     "        knob.setDefaultValue(defaultValue)\n"
     "        knob.fromScript(knobToScript)"
 ;
+static const char* autoLabelScript =
+"nuke.thisNode().name() + \"\\n\"+"
+"'(' + nuke.thisNode().knob('layer_set').enumName(int(nuke.thisNode().knob('layer_set').getValue())) + ')' ";
 
 namespace BeautyLayerSetConstants {
     // frequently used lists of layer set category names 
@@ -245,7 +248,6 @@ void GradeBeauty::_validate(bool for_real) {
     
     calculateLayerValues(m_lsKnobData.m_selectedChannels, m_valueMap);
     set_out_channels(activeChannelSet());
-    setLayerSetNodeLabel(this);
     //printf("knob is %s\n", knob("layer_set")->enumerationKnob()->getSelectedItemString().c_str());
 }
 
@@ -359,6 +361,11 @@ void GradeBeauty::knobs(Knob_Callback f) {
     SetFlags(f, Knob::HIDE_ANIMATION_AND_VIEWS | Knob::NO_UNDO | Knob::NO_RERENDER | Knob::STARTLINE);
     Link_knob(f, "reset values", "", "reset values");
     EndToolbar(f);
+    // if (!f.makeKnobs()) {
+    //     Knob* autoLabelKnob = this->knob("autolabel");
+    //     autoLabelKnob->set_flag(Knob::DO_NOT_WRITE);
+    //     autoLabelKnob->set_text(autoLabelScript);
+    // }
 }
 
 int GradeBeauty::knob_changed(Knob* k) {
