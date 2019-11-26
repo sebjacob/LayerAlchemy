@@ -8,7 +8,7 @@ include(ExternalProject)
 set(PROJECT_NAME LayerAlchemy)
 set(LAYER_ALCHEMY_VERSION_MAJOR 0)
 set(LAYER_ALCHEMY_VERSION_MINOR 7)
-set(LAYER_ALCHEMY_VERSION_PATCH 1)
+set(LAYER_ALCHEMY_VERSION_PATCH 2)
 
 option(BUILD_APPS "Build binary applications" ON)
 option(BUILD_DOCS "Build html documentation" ON)
@@ -43,7 +43,6 @@ ExternalProject_Add(yaml_cpp
     # CMAKE_POSITION_INDEPENDENT_CODE -> Tells CMake to add -fPic flag.
     # By default yaml-cpp uses fPic only when building in shared mode.
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/libs -DYAML_CPP_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-    BUILD_COMMAND "$(MAKE)"  # $(MAKE) (with parenthesis, not brackets) allows to inherits make -j multi-threads.
 )
 
 ExternalProject_Add(argparse
@@ -54,7 +53,7 @@ ExternalProject_Add(argparse
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
     CONFIGURE_COMMAND ""
-    UPDATE_COMMAND ""
+    UPDATE_COMMAND "" # for cmake cache,
 )
 
 link_directories(
@@ -79,21 +78,15 @@ foreach(LAYERSET_LIB ${LAYERSET_LIBS})
     )
     add_dependencies(${LAYERSET_LIB} yaml_cpp)
     target_link_libraries(${LAYERSET_LIB} yaml-cpp)
+    set_target_properties(${LAYERSET_LIB} PROPERTIES PUBLIC_HEADER ${CMAKE_SOURCE_DIR}/include/${LAYERSET_LIB}.h)
 
     install(
       TARGETS ${LAYERSET_LIB}
       ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+      PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_PREFIX}/include
     )
 endforeach()
 
-# include files
-install(
-    DIRECTORY ${CMAKE_SOURCE_DIR}/include
-    DESTINATION ${CMAKE_INSTALL_PREFIX}
-    FILES_MATCHING PATTERN "*.h*"
-    PATTERN ".DS_Store" EXCLUDE
-    PATTERN "@eaDir" EXCLUDE
-)
 
 if(BUILD_APPS)
     add_executable(LayerTester ${CMAKE_SOURCE_DIR}/src/LayerTester.cpp)
@@ -125,7 +118,7 @@ install(
 
 if(BUILD_NUKE)
     add_subdirectory(src/nuke)
-endif(BUILD_NUKE)
+endif()
 
 add_subdirectory(documentation)
 
@@ -146,9 +139,11 @@ endif()
 
 if (WIN32)
     set(PROJECT_PACKAGE_COMMAND "cfv" "${PROJECT_PACKAGE_NAME}.zip" --format=zip "${CMAKE_INSTALL_PREFIX}")
-else(WIN32)
+else()
     set(PROJECT_PACKAGE_COMMAND  "cfvz" "${PROJECT_PACKAGE_NAME}.tgz" "${CMAKE_INSTALL_PREFIX}")
-endif(WIN32)
+endif()
+
+# Use CPack
 
 add_custom_target(package
     COMMENT "creating package for ${PROJECT_PACKAGE_NAME}"

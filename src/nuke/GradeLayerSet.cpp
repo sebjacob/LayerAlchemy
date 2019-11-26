@@ -65,7 +65,7 @@ public:
 
 };
 static Op* build(Node* node) {
-    return (new NukeWrapper(new GradeLayerSet(node)))->noChannels();
+    return (new NukeWrapper(new GradeLayerSet(node)))->noChannels()->mixLuminance();
 }
 GradeLayerSet::~GradeLayerSet() {}
 
@@ -105,18 +105,19 @@ void GradeLayerSet::_validate(bool for_real) {
 void GradeLayerSet::pixel_engine(const Row& in, int y, int x, int r,
                                  ChannelMask channels, Row& out) {
 
-    foreach(n, channels) {
-        unsigned z = colourIndex(n);
-        if (z > 3) {
-            out.copy(in, n, x, r);
+    ChannelSet activeChannels = activeChannelSet();
+    foreach(channel, channels) {
+        unsigned z = colourIndex(channel);
+        if (!activeChannels.contains(channel) || z > 3) {
+            out.copy(in, channel, x, r);
             continue;
         }
         float A = whitepoint[z] - blackpoint[z];
         A = A ? (white[z] - black[z]) / A : 10000.0f;
         A *= multiply[z];
         float B = add[z] + black[z] - blackpoint[z] * A;
-        if (!B && in.is_zero(n)) {
-            out.erase(n);
+        if (!B && in.is_zero(channel)) {
+            out.erase(channel);
             continue;
         }
         float G = gamma[z];
@@ -128,8 +129,8 @@ void GradeLayerSet::pixel_engine(const Row& in, int y, int x, int r,
         if (G > 125.0f)
             G = 125.0f;
 #endif
-        const float* inptr = in[n] + x;
-        float* OUTBUF = out.writable(n) + x;
+        const float* inptr = in[channel] + x;
+        float* OUTBUF = out.writable(channel) + x;
         float* END = OUTBUF + (r - x);
         if (!reverse) {
             // do the linear interpolation:

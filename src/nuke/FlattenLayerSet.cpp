@@ -4,13 +4,16 @@
 
 #include "LayerSet.h"
 #include "LayerSetKnob.h"
+#include "utilities.cpp"
+
 
 using namespace DD::Image;
 using namespace LayerSet;
 
+
 // exclude non color layers, makes no sense for this node
-//static const StrVecType categoryExcludeFilterList = {"non_color", "base_color", "albedo"};
-//static const CategorizeFilter excludeLayerFilter(categoryExcludeFilterList, CategorizeFilter::modes::EXCLUDE);
+static const StrVecType categoryExcludeFilterList = {"non_color", "base_color", "albedo"};
+static const CategorizeFilter excludeLayerFilter(categoryExcludeFilterList, CategorizeFilter::modes::EXCLUDE);
 
 static const StrVecType categoryFilterList = {
     "beauty_direct_indirect", "beauty_shading_global", "light_group", "beauty_shading"
@@ -46,16 +49,17 @@ public:
     const char* Class() const {return description.name;}
     const char* node_help() const {return HELP;}
     static const Iop::Description description;
-    // channel set that contains all channels that are modified by the node
-    ChannelSet activeChannelSet() const {return ChannelSet(m_targetLayer + m_lsKnobData.m_selectedChannels);}
-
-    FlattenLayerSet(Node* node) : PixelIop(node) {
-        m_operation = operationModes::COPY;
-        m_targetLayer = Mask_RGB;
-    }
+    FlattenLayerSet(Node* node);
     ~FlattenLayerSet();
-
+    // channel set that contains all channels that are modified by the node
+    ChannelSet activeChannelSet() const;
 };
+
+FlattenLayerSet::FlattenLayerSet(Node* node) : PixelIop(node) {
+    m_operation = operationModes::COPY;
+    m_targetLayer = Mask_RGB;
+
+}
 
 static Op* build(Node* node) {
     return (new FlattenLayerSet(node));
@@ -70,55 +74,83 @@ const Iop::Description FlattenLayerSet::description(
 );
 
 void FlattenLayerSet::in_channels(int input_number, ChannelSet& mask) const {
-    mask += activeChannelSet();
+    mask += ChannelMask(activeChannelSet());
+}
+
+ChannelSet FlattenLayerSet::activeChannelSet() const {
+    ChannelSet outChans;
+    foreach(channel, ChannelSet(m_targetLayer + m_lsKnobData.m_selectedChannels))
+    {
+        if (colourIndex(channel) <= 2) {
+            outChans += channel;
+        }
+    }
+    return outChans;
 }
 
 void FlattenLayerSet::_validate(bool for_real) {
     copy_info(); // this copies the input info to the output
     ChannelSet inChannels = info_.channels();
-    if (validateLayerSetKnobUpdate(this, m_lsKnobData, layerCollection, inChannels)) {
-        updateLayerSetKnob(this, m_lsKnobData, layerCollection, inChannels);
+    validateTargetLayerColorIndex(this, m_targetLayer, 0, 2);
+    if (validateLayerSetKnobUpdate(this, m_lsKnobData, layerCollection, inChannels, excludeLayerFilter)) {
+        updateLayerSetKnob(this, m_lsKnobData, layerCollection, inChannels, excludeLayerFilter);
     }
     set_out_channels(activeChannelSet());
 }
 
 void FlattenLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelMask channels, Row& out) {
-    ChannelSet processChans = activeChannelSet();
-    map<int, float*> targetRowPtrIdxMap;
+    ChannelSet inChannels = ChannelSet(channels);
+    ChannelSet activeChannels = activeChannelSet();
+
+    bool isTargetLayer = m_targetLayer.intersection(inChannels).size() == m_targetLayer.size();
+    if (!isTargetLayer) {
+        out.copy(in, channels, x, r);
+        return;
+    }
 
     Row aRow(x, r);
-    aRow.copy(in, processChans, x, r);
+    ChannelSet bty = m_targetLayer.intersection(channels);
+    ChannelSet aovs = activeChannels - bty;
 
-    foreach(z, m_targetLayer) {
-        int chanIdx = colourIndex(z);
-        targetRowPtrIdxMap[chanIdx] = aRow.writableConstant(0, z) + x;
-        if (m_operation != operationModes(COPY)) {
-            aRow.copy(in, z, x, r);
-        }
+    map<unsigned, float*> btyPtrIdxMap;
+
+    foreach(channel, bty) 
+    {
+        unsigned chanIdx = colourIndex(channel);
+        btyPtrIdxMap[chanIdx] = aRow.writableConstant(0.0f, channel);
     }
 
-    foreach(z, m_lsKnobData.m_selectedChannels) { // visit every channel in LayerSet
-        int chanIdx = colourIndex(z);
-        if (
-        (targetRowPtrIdxMap.find(chanIdx) == targetRowPtrIdxMap.end())
-        || chanIdx > 2
-        || aRow.is_zero(z)
-        || m_targetLayer.contains(z)) {
-            continue;
-        }
-        const float* pArow = aRow[z] + x;
-        const float* pArowEnd = pArow + (r - x);
-        float* btyChanPtr = targetRowPtrIdxMap[chanIdx];
-        for (const float* i = pArow; i != pArowEnd; i++) {
-            if (m_operation == operationModes(REMOVE)) {
-                *btyChanPtr -= *i;
-            } else {
-                *btyChanPtr += *i;
+    if (m_operation != operationModes(COPY))
+    {
+        LayerSet::utilities::hard_copy(in, x, r, bty, aRow);
+    }
+
+    for (const auto& kvp : btyPtrIdxMap) 
+    {
+        unsigned btyChanIdx = kvp.first;
+        float* aRowBty = kvp.second;
+
+        foreach(aov, aovs)
+        {
+            if (in.is_zero(aov) || btyChanIdx != colourIndex(aov))
+            {
+                continue;
             }
-            btyChanPtr++;
+            const float* inAovChan = in[aov];
+            for (int X = x; X < r; X++)
+            {
+                float aovPixel = inAovChan[X];
+                float btyPixel = aRowBty[X];
+
+                if (m_operation == operationModes(REMOVE)) {
+                    aRowBty[X] -= aovPixel;
+                } else {
+                    aRowBty[X] += aovPixel;
+                }
+            }
         }
     }
-    out.copy(aRow, processChans, x, r);
+    LayerSet::utilities::hard_copy(aRow, x, r, bty, out);
 }
 
 void FlattenLayerSet::knobs(Knob_Callback f) {

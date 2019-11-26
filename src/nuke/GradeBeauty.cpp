@@ -7,6 +7,7 @@
 
 #include "LayerSet.h"
 #include "LayerSetKnob.h"
+#include "utilities.cpp"
 
 static const char* const HELP =
         "Provides artist friendly controls to manipulate multichannel cg render passes\n\n"
@@ -98,9 +99,9 @@ static const char* const MASTER_KNOB_NAME = "master";
 class GradeBeautyValueMap {
 private:
     map<string, float[3]> m_valueMap;
-public:
     map<string, vector<float*>> ptrValueMap;
-    map<string, map<int, float>> channelMultipliers;
+public:
+    map<Channel, float> multipliers;
     vector<Knob*> m_colorKnobs;
 
     //initializes the layer value mapping and interconnect between of layers
@@ -184,7 +185,7 @@ private:
     bool m_beautyDiff {true};
     ChannelSet m_targetLayer  {Mask_RGB};
     LayerSetKnobData m_lsKnobData;
-    GradeBeautyValueMap m_valueMap;  
+    GradeBeautyValueMap m_valueMap;
     // utility function to create color knobs for this node
     Knob* createColorKnob(Knob_Callback, float*, const string&, const bool&);
     // utility function to set color knob ranges, uses the integer value of  mathModes as the center
@@ -199,7 +200,6 @@ private:
     // this calculates the multiply value for layers for the pixel engine.
     void calculateLayerValues(const DD::Image::ChannelSet&, GradeBeautyValueMap&);
     // channel set that contains all channels that are modified by the node
-    ChannelSet activeChannelSet() const {return ChannelSet(m_targetLayer + m_lsKnobData.m_selectedChannels);}
 
 public:
     void knobs(Knob_Callback);
@@ -213,6 +213,12 @@ public:
     static const Iop::Description description;
     GradeBeauty(Node* node);
     ~GradeBeauty();
+    // channel set that contains all channels that are modified by the node
+    ChannelSet activeChannelSet() const;
+    // pixel engine function when anything but the target layer is requested to render
+    void channelPixelEngine(const Row&, int, int, int, ChannelMask, Row&);
+    // pixel engine functon when the target layer is requested to render
+    void beautyPixelEngine(const Row&, int y, int x, int r, ChannelSet&, Row&);
 
 };
 
@@ -220,7 +226,7 @@ GradeBeauty::GradeBeauty(Node* node) : PixelIop(node) {
 }
 
 static Op* build(Node* node) {
-    return (new NukeWrapper(new GradeBeauty(node)))->noChannels()->noUnpremult();
+    return (new NukeWrapper(new GradeBeauty(node)))->noChannels()->noUnpremult()->mixLuminance();
 }
 
 GradeBeauty::~GradeBeauty() {}
@@ -232,12 +238,27 @@ const Iop::Description GradeBeauty::description(
 );
 
 void GradeBeauty::in_channels(int input_number, ChannelSet& mask) const {
-    mask += activeChannelSet();
+    mask += ChannelMask(activeChannelSet());
 }
+
+ChannelSet GradeBeauty::activeChannelSet() const {
+    ChannelSet outChans;
+    foreach(z, ChannelSet(m_targetLayer + m_lsKnobData.m_selectedChannels))
+    {
+        int chanIdx = colourIndex(z);
+        if (chanIdx <= 2) {
+            outChans += z;
+        }
+    }
+    return outChans;
+}
+
 
 void GradeBeauty::_validate(bool for_real) {
     copy_info(); // this copies the input info to the output
     ChannelSet inChannels = info_.channels();
+    validateTargetLayerColorIndex(this, m_targetLayer, 0, 2);
+
     if (validateLayerSetKnobUpdate(this, m_lsKnobData, layerCollection, inChannels, CategorizeFilterAllBeauty)) {
         updateLayerSetKnob(this, m_lsKnobData, layerCollection, inChannels, CategorizeFilterAllBeauty);
         setKnobVisibility();
@@ -245,55 +266,111 @@ void GradeBeauty::_validate(bool for_real) {
         setKnobDefaultValue(this);
         _validate(true); // this will refresh the node UI in case the node was blank
     }
-    
+
     calculateLayerValues(m_lsKnobData.m_selectedChannels, m_valueMap);
     set_out_channels(activeChannelSet());
-    //printf("knob is %s\n", knob("layer_set")->enumerationKnob()->getSelectedItemString().c_str());
+}
+
+void GradeBeauty::channelPixelEngine(const Row& in, int y, int x, int r, ChannelMask channels, Row& aRow)
+{
+    map<Channel, float*> aovPtrIdxMap;
+    foreach(channel, channels)
+    {
+        LayerSet::utilities::hard_copy(in, x, r, channel, aRow);
+        aovPtrIdxMap[channel] = aRow.writable(channel);
+    }
+
+    foreach(channel, channels)
+    {
+        unsigned chanIdx = colourIndex(channel);
+        string layerName = getLayerName(channel);
+        float* outAovValue = aovPtrIdxMap[channel];
+        const float* inAovValue = in[channel];
+
+        float multValue = m_valueMap.multipliers[channel];
+
+        for (unsigned X = x; X < r; X++) {
+            float origValue = inAovValue[X];
+            outAovValue[X] = origValue * multValue;
+        }
+    }
+}
+
+void GradeBeauty::beautyPixelEngine(const Row& in, int y, int x, int r, ChannelSet& channels, Row& aRow)
+{
+    ChannelSet bty = m_targetLayer.intersection(channels);
+    ChannelSet aovs = m_lsKnobData.m_selectedChannels.intersection(channels);
+
+    map<unsigned, float*> btyPtrIdxMap;
+    map<Channel, float*> aovPtrIdxMap;
+    map<Channel, const float*> aovInPtrIdxMap;
+
+    foreach(channel, bty) {
+        unsigned chanIdx = colourIndex(channel);
+        float* rowBtyChan;
+        if (m_beautyDiff)
+        {
+            LayerSet::utilities::hard_copy(in, x, r, channel, aRow);
+            rowBtyChan = aRow.writable(channel);
+        } else
+        {
+            rowBtyChan = aRow.writableConstant(0.0f, channel);
+        }
+        btyPtrIdxMap[chanIdx] = rowBtyChan;
+        
+    }
+    foreach(channel, aovs) {
+        aovPtrIdxMap[channel] = aRow.writable(channel);
+        aovInPtrIdxMap[channel] = in[channel];
+    }
+
+    for (const auto& kvp : btyPtrIdxMap)
+    {
+        unsigned btyChanIdx = kvp.first;
+        float* aRowBty = kvp.second;
+
+        foreach(aov, aovs)
+        {
+            unsigned aovChanIdx = colourIndex(aov);
+            if (btyChanIdx != aovChanIdx)
+            {
+                continue;
+            }
+            float* aRowBty = btyPtrIdxMap[aovChanIdx];
+            float* aRowAov = aovPtrIdxMap[aov];
+            const float* inAov = aovInPtrIdxMap[aov];
+
+            for (int X = x; X < r; X++)
+            {
+                float aovPixel = aRowAov[X];
+                float btyPixel = aRowBty[X];
+                if (m_beautyDiff)
+                {
+                    float aovInPixel = inAov[X];
+                    btyPixel -= aovInPixel;
+                }
+                aRowBty[X] = btyPixel + aovPixel;
+            }
+        }
+    }
 }
 
 void GradeBeauty::pixel_engine(const Row& in, int y, int x, int r, ChannelMask channels, Row& out) {
-    ChannelSet processChans = activeChannelSet();
-    map<int, float*> targetRowPtrIdxMap;
 
+    ChannelSet inChannels = ChannelSet(channels);
+    ChannelSet activeChannels = activeChannelSet();
     Row aRow(x, r);
-    aRow.copy(in, processChans, x, r);
-
-    foreach(z, m_targetLayer) {
-        int chanIdx = colourIndex(z);
-        targetRowPtrIdxMap[chanIdx] = aRow.writableConstant(0.0f, z) + x;
-        if (m_beautyDiff)
-        {
-            aRow.copy(in, z, x, r);
-        }
+    bool isTargetLayer = m_targetLayer.intersection(inChannels).size() == m_targetLayer.size();
+    if (isTargetLayer)
+    {
+        channelPixelEngine(in, y, x, r, activeChannels, aRow);
+        beautyPixelEngine(in, y, x, r, activeChannels, aRow);
     }
-
-    foreach(z, m_lsKnobData.m_selectedChannels) {
-        int chanIdx = colourIndex(z);
-        if (
-        (targetRowPtrIdxMap.find(chanIdx) == targetRowPtrIdxMap.end())
-        || chanIdx > 2
-        || aRow.is_zero(z)
-        || m_targetLayer.contains(z)) {
-            continue;
-        }
-        string layerName = getLayerName(z);
-        float multValue = m_valueMap.channelMultipliers[layerName][chanIdx];
-
-        float* pArow = aRow.writable(z) + x;
-        const float* pArowEnd = pArow + (r - x);
-        float* btyChanPtr = targetRowPtrIdxMap[chanIdx];
-
-        for (float* i = pArow; i != pArowEnd; i++) {
-            if (m_beautyDiff)
-            {
-               *btyChanPtr -= *i;
-            }
-            *i *= multValue;
-            *btyChanPtr += *i;
-            pArow++; btyChanPtr++;
-        }
+    else
+    {
+        channelPixelEngine(in, y, x, r, inChannels, aRow);
     }
-    out.copy(aRow, processChans, x, r);
+    LayerSet::utilities::hard_copy(aRow, x, r, inChannels, out);
 }
 
 void GradeBeauty::knobs(Knob_Callback f) {
@@ -361,11 +438,6 @@ void GradeBeauty::knobs(Knob_Callback f) {
     SetFlags(f, Knob::HIDE_ANIMATION_AND_VIEWS | Knob::NO_UNDO | Knob::NO_RERENDER | Knob::STARTLINE);
     Link_knob(f, "reset values", "", "reset values");
     EndToolbar(f);
-    // if (!f.makeKnobs()) {
-    //     Knob* autoLabelKnob = this->knob("autolabel");
-    //     autoLabelKnob->set_flag(Knob::DO_NOT_WRITE);
-    //     autoLabelKnob->set_text(autoLabelScript);
-    // }
 }
 
 int GradeBeauty::knob_changed(Knob* k) {
@@ -443,10 +515,9 @@ void GradeBeauty::setKnobDefaultValue(DD::Image::Op* nukeOpPtr) {
 }
 
 void GradeBeauty::calculateLayerValues(const DD::Image::ChannelSet& channels, GradeBeautyValueMap& valueMap) {
-    valueMap.channelMultipliers.clear();
-    foreach(z, channels) {
-        int chanIdx = colourIndex(z);
-        string layerName = getLayerName(z);
-           valueMap.channelMultipliers[layerName][chanIdx] = m_valueMap.getLayerMultiplier(layerName, chanIdx, m_mathMode);
+    foreach(channel, channels) {
+        int chanIdx = colourIndex(channel);
+        string layerName = getLayerName(channel);
+        m_valueMap.multipliers[channel] = m_valueMap.getLayerMultiplier(layerName, chanIdx, m_mathMode);
     }
 }

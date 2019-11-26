@@ -54,11 +54,13 @@ foreach(LIB ${NUKE_LAYERSET_LIBS})
     )
     set_target_properties(${LIB} PROPERTIES
         PREFIX ""
+        PUBLIC_HEADER ${CMAKE_SOURCE_DIR}/include/nuke/${LIB}.h
     )
 
     install(
         TARGETS ${LIB}
         DESTINATION ${NUKE_PLUGIN_DESTINATION}
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_PREFIX}/include/nuke
     )
 endforeach()
 

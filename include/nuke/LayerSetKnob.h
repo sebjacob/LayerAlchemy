@@ -6,7 +6,8 @@
 
 #include "LayerSet.h"
 
-namespace LayerSet {
+namespace LayerSet
+{
 
 static const char* LAYER_SET_KNOB_NAME = "layer_set";
 

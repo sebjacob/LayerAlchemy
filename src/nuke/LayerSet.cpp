@@ -55,6 +55,7 @@ ChannelSetMapType categorizeChannelSet(const LayerCollection& collection, const 
 ChannelSetMapType categorizeChannelSet(const LayerCollection& collection, const DD::Image::ChannelSet& inChannels, const CategorizeFilter& categorizeFilter) {
     StrVecType inLayers = LayerSet::getLayerNames(inChannels);
     LayerMap layerMap = collection.categorizeLayers(inLayers, categorizeType::pub, categorizeFilter);
+    layerMap.strMap.erase("all"); // not useful for Nuke when CategorizeFilter is used
     return _layerMaptoChannelMap(layerMap, inChannels);
 }
 
@@ -73,6 +74,18 @@ DD::Image::ChannelSet getChannelSet(const ChannelSetMapType& channelSetLayerMap)
         channels += kvp.second;
     }
     return channels;
+}
+
+void validateTargetLayerColorIndex(DD::Image::Op* t_op, const DD::Image::ChannelSet& targetLayer, unsigned minIndex, unsigned
+maxIndex)
+{
+    foreach(channel, targetLayer)
+    {
+        unsigned colorIdx = colourIndex(channel);
+        if (colorIdx < minIndex || colorIdx > maxIndex) {
+            t_op->error("target layer's current channels are out of color range");
+        }
+    }
 }
 }; // LayerSet
 
