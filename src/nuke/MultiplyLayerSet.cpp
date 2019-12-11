@@ -6,18 +6,19 @@
 #include "LayerSet.h"
 #include "LayerSetKnob.h"
 
+namespace MultiplyLayerSet {
+
 using namespace DD::Image;
-using namespace LayerSet;
 
 static const char* const HELP = "Multiplies multiple channels using LayerSets";
 
 class MultiplyLayerSet : public PixelIop {
 
 private:
+    LayerAlchemy::LayerSetKnob::LayerSetKnobData m_lsKnobData;
     int index;
     float m_multValue[4] = {1, 1, 1, 1};
     ChannelSet m_targetLayerSet;
-    LayerSetKnobData m_lsKnobData;
 
 public:
     void knobs(Knob_Callback);
@@ -52,8 +53,8 @@ const Iop::Description MultiplyLayerSet::description(
 void MultiplyLayerSet::_validate(bool for_real) {
     copy_info(); // this copies the input info to the output
     ChannelSet inChannels = info_.channels();
-    if (validateLayerSetKnobUpdate(this, m_lsKnobData, layerCollection, inChannels)) {
-        updateLayerSetKnob(this, m_lsKnobData, layerCollection, inChannels);
+    if (validateLayerSetKnobUpdate(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels)) {
+        updateLayerSetKnob(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels);
     }
     set_out_channels(activeChannelSet());
 }
@@ -75,8 +76,9 @@ void MultiplyLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelM
 }
 
 void MultiplyLayerSet::knobs(Knob_Callback f) {
-    LayerSet::LayerSetKnob(f, m_lsKnobData);
-    createDocumentationButton(f);
+    LayerAlchemy::LayerSetKnob::LayerSetKnob(f, m_lsKnobData);
+    LayerAlchemy::Knobs::createDocumentationButton(f);
     Divider(f, 0); // separates layer set knobs from the rest
     AColor_knob(f, m_multValue, IRange(0, 4), "value");
 }
+} // End namespace MultiplyLayerSet

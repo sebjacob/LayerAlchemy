@@ -1,4 +1,3 @@
-#include <memory>
 #include "math.h"
 
 #include <DDImage/Row.h>
@@ -7,7 +6,8 @@
 
 #include "LayerSet.h"
 #include "LayerSetKnob.h"
-#include "utilities.cpp"
+
+namespace GradeBeautyLayerSet {
 
 static const char* const HELP =
         "Provides artist friendly controls to manipulate multichannel cg render passes\n\n"
@@ -31,6 +31,17 @@ static bool LINUX = false;
 LINUX = true;
 #endif
 
+float validateGammaValue(const float& gammaValue) {
+    if (LINUX) {
+        if (gammaValue < 0.008f) {
+            return 0.0f;
+        } else if (gammaValue > 125.0f) {
+            return 125.0f;
+        }
+    }
+    return gammaValue;
+}
+
 enum operationModes {
     ADD = 0, COPY
 };
@@ -41,7 +52,6 @@ static const char* const operationNames[] = {
 
 
 using namespace DD::Image;
-using namespace LayerSet;
 
 static const StrVecType all = {
     "beauty_direct_indirect", "beauty_shading_global", "light_group", "beauty_shading"
@@ -51,18 +61,18 @@ static const CategorizeFilter CategorizeFilterAllBeauty(all, CategorizeFilter::m
 class GradeBeautyLayerSet : public PixelIop {
 
 private:
-    float blackpoint[4]{0.0f, 0.0f, 0.0f, 0.0f};
-    float whitepoint[4]{1.0f, 1.0f, 1.0f, 1.0f};
-    float lift[4]{0.0f, 0.0f, 0.0f, 0.0f};
-    float gain[4]{1.0f, 1.0f, 1.0f, 1.0f};
-    float offset[4]{0.0f, 0.0f, 0.0f, 0.0f};
-    float multiply[4]{1.0f, 1.0f, 1.0f, 1.0f};
-    float gamma[4]{1.0f, 1.0f, 1.0f, 1.0f};
+    float blackpoint[3]{0.0f, 0.0f, 0.0f};
+    float whitepoint[3]{1.0f, 1.0f, 1.0f};
+    float lift[3]{0.0f, 0.0f, 0.0f};
+    float gain[3]{1.0f, 1.0f, 1.0f};
+    float offset[3]{0.0f, 0.0f, 0.0f};
+    float multiply[3]{1.0f, 1.0f, 1.0f};
+    float gamma[3]{1.0f, 1.0f, 1.0f};
     bool reverse{false};
     bool clampBlack{true};
     bool clampWhite{false};
     int m_operation{operationModes::ADD};
-    LayerSetKnobData m_lsKnobData;
+    LayerAlchemy::LayerSetKnob::LayerSetKnobData m_lsKnobData;
     ChannelSet m_targetLayer{Mask_RGB};
     // intermediate grade algorithm storage
     float A[3]{0.0f, 0.0f, 0.0f};
@@ -80,7 +90,6 @@ public:
     const char* node_help() const {return HELP;}
     static const Iop::Description description;
 
-    float validateGammaValue(const float&);
     // This function calculates and stores the grade algorithm's intermediate calculations
     void precomputeValues();
     GradeBeautyLayerSet(Node* node);
@@ -162,10 +171,10 @@ void GradeBeautyLayerSet::_validate(bool for_real) {
     info_.black_outside(!changeZero);
     copy_info(); // this copies the input info to the output
     ChannelSet inChannels = info_.channels();
-    validateTargetLayerColorIndex(this, m_targetLayer, 0, 2);
+    LayerAlchemy::Utilities::validateTargetLayerColorIndex(this, m_targetLayer, 0, 2);
 
-    if (validateLayerSetKnobUpdate(this, m_lsKnobData, layerCollection, inChannels, CategorizeFilterAllBeauty)) {
-        updateLayerSetKnob(this, m_lsKnobData, layerCollection, inChannels, CategorizeFilterAllBeauty);
+    if (validateLayerSetKnobUpdate(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels, CategorizeFilterAllBeauty)) {
+        updateLayerSetKnob(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels, CategorizeFilterAllBeauty);
     }
     set_out_channels(activeChannelSet());
 }
@@ -174,7 +183,7 @@ void GradeBeautyLayerSet::channelPixelEngine(const Row& in, int y, int x, int r,
     map<Channel, float*> aovPtrIdxMap;
     foreach(channel, channels)
     {
-        LayerSet::utilities::hard_copy(in, x, r, channel, aRow);
+        LayerAlchemy::Utilities::hard_copy(in, x, r, channel, aRow);
         aovPtrIdxMap[channel] = aRow.writable(channel);
     }
 
@@ -276,7 +285,7 @@ void GradeBeautyLayerSet::beautyPixelEngine(const Row& in, int y, int x, int r, 
         float* rowBtyChan;
         if (m_operation == operationModes::ADD)
         {
-            LayerSet::utilities::hard_copy(in, x, r, channel, aRow);
+            LayerAlchemy::Utilities::hard_copy(in, x, r, channel, aRow);
             rowBtyChan = aRow.writable(channel);
         } 
         else
@@ -355,13 +364,13 @@ void GradeBeautyLayerSet::pixel_engine(const Row& in, int y, int x, int r, Chann
     {
         channelPixelEngine(in, y, x, r, inChannels, aRow);
     }
-    LayerSet::utilities::hard_copy(aRow, x, r, inChannels, out);
+    LayerAlchemy::Utilities::hard_copy(aRow, x, r, inChannels, out);
 }
 
 void GradeBeautyLayerSet::knobs(Knob_Callback f) {
-    LayerSet::LayerSetKnob(f, m_lsKnobData);
-    createDocumentationButton(f);
-    createColorKnobResetButton(f);
+    LayerAlchemy::LayerSetKnob::LayerSetKnob(f, m_lsKnobData);
+    LayerAlchemy::Knobs::createDocumentationButton(f);
+    LayerAlchemy::Knobs::createColorKnobResetButton(f);
 
     Divider(f, 0); // separates layer set knobs from the rest
 
@@ -381,19 +390,19 @@ void GradeBeautyLayerSet::knobs(Knob_Callback f) {
 
     Divider(f, 0); // separates layer set knobs from the rest
 
-    AColor_knob(f, blackpoint, IRange(-1, 1), "blackpoint");
+    Color_knob(f, blackpoint, IRange(-1, 1), "blackpoint");
     Tooltip(f, "This color is turned into black");
-    AColor_knob(f, whitepoint, IRange(0, 4), "whitepoint");
+    Color_knob(f, whitepoint, IRange(0, 4), "whitepoint");
     Tooltip(f, "This color is turned into white");
-    AColor_knob(f, lift, IRange(-1, 1), "lift", "lift");
+    Color_knob(f, lift, IRange(-1, 1), "lift", "lift");
     Tooltip(f, "Black is turned into this color");
-    AColor_knob(f, gain, IRange(0, 4), "gain", "gain");
+    Color_knob(f, gain, IRange(0, 4), "gain", "gain");
     Tooltip(f, "White is turned into this color");
-    AColor_knob(f, multiply, IRange(0, 4), "multiply");
+    Color_knob(f, multiply, IRange(0, 4), "multiply");
     Tooltip(f, "Constant to multiply result by");
-    AColor_knob(f, offset, IRange(-1, 1), "offset", "offset");
+    Color_knob(f, offset, IRange(-1, 1), "offset", "offset");
     Tooltip(f, "Constant to offset to result (raises both black & white, unlike lift)");
-    AColor_knob(f, gamma, IRange(.2, 5), "gamma");
+    Color_knob(f, gamma, IRange(.2, 5), "gamma");
     Tooltip(f, "Gamma correction applied to final result");
     Newline(f, "  ");
     Bool_knob(f, &reverse, "reverse");
@@ -409,14 +418,4 @@ void GradeBeautyLayerSet::knobs(Knob_Callback f) {
 int GradeBeautyLayerSet::knob_changed(Knob* k) {
     return 1;
 }
-
-float GradeBeautyLayerSet::validateGammaValue(const float& gammaValue) {
-    if (LINUX) {
-        if (gammaValue < 0.008f) {
-            return 0.0f;
-        } else if (gammaValue > 125.0f) {
-            return 125.0f;
-        }
-    }
-    return gammaValue;
-}
+} // End namespace GradeBeautyLayerSet
