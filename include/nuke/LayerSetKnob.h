@@ -10,7 +10,6 @@ namespace LayerAlchemy {
 namespace LayerSetKnob {
 
 static const char* LAYER_SET_KNOB_NAME = "layer_set";
-using LayerAlchemy::ChannelSetMapType;
 
 /**
  * Stores the data needed to manage LayerSet enumeration knob

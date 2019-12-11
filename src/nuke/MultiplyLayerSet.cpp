@@ -38,7 +38,7 @@ public:
 
 // register
 static Op* build(Node* node) {
-    return (new NukeWrapper(new MultiplyLayerSet(node)))->noChannels()->noUnpremult();
+    return (new NukeWrapper(new MultiplyLayerSet(node)))->noChannels()->noUnpremult()->mixLuminance();
 }
 
 MultiplyLayerSet::~MultiplyLayerSet() {}

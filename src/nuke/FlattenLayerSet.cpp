@@ -4,12 +4,16 @@
 
 #include "LayerSet.h"
 #include "LayerSetKnob.h"
-#include "utilities.cpp"
 
+
+namespace FlattenLayerSet {
 
 using namespace DD::Image;
-using namespace LayerSet;
 
+static const char* const HELP =
+        "<p>This PixelIop manipulates pixel values of a target layer by adding layers"
+        " from a layer set in the incoming image stream.</p>"
+        ;
 
 // exclude non color layers, makes no sense for this node
 static const StrVecType categoryExcludeFilterList = {"non_color", "base_color", "albedo"};
@@ -19,11 +23,6 @@ static const StrVecType categoryFilterList = {
     "beauty_direct_indirect", "beauty_shading_global", "light_group", "beauty_shading"
 };
 static const CategorizeFilter layerFilter(categoryFilterList, CategorizeFilter::modes::INCLUDE);
-
-static const char* const HELP =
-        "<p>This PixelIop manipulates pixel values of a target layer by adding layers"
-        " from a layer set in the incoming image stream.</p>"
-        ;
 
 enum operationModes {
     COPY = 0, ADD, REMOVE
@@ -36,8 +35,8 @@ static const char* const operationNames[] = {
 class FlattenLayerSet : public PixelIop {
 
 private:
+    LayerAlchemy::LayerSetKnob::LayerSetKnobData m_lsKnobData;
     ChannelSet m_targetLayer  {Mask_RGB};
-    LayerSetKnobData m_lsKnobData;
     int m_operation;
 
 public:
@@ -91,9 +90,9 @@ ChannelSet FlattenLayerSet::activeChannelSet() const {
 void FlattenLayerSet::_validate(bool for_real) {
     copy_info(); // this copies the input info to the output
     ChannelSet inChannels = info_.channels();
-    validateTargetLayerColorIndex(this, m_targetLayer, 0, 2);
-    if (validateLayerSetKnobUpdate(this, m_lsKnobData, layerCollection, inChannels, excludeLayerFilter)) {
-        updateLayerSetKnob(this, m_lsKnobData, layerCollection, inChannels, excludeLayerFilter);
+    LayerAlchemy::Utilities::validateTargetLayerColorIndex(this, m_targetLayer, 0, 2);
+    if (validateLayerSetKnobUpdate(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels, excludeLayerFilter)) {
+        updateLayerSetKnob(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels, excludeLayerFilter);
     }
     set_out_channels(activeChannelSet());
 }
@@ -101,29 +100,34 @@ void FlattenLayerSet::_validate(bool for_real) {
 void FlattenLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelMask channels, Row& out) {
     ChannelSet inChannels = ChannelSet(channels);
     ChannelSet activeChannels = activeChannelSet();
-
     bool isTargetLayer = m_targetLayer.intersection(inChannels).size() == m_targetLayer.size();
-    if (!isTargetLayer) {
-        out.copy(in, channels, x, r);
+    if (!isTargetLayer)
+    {
+        out.copy(in, inChannels, x, r);
         return;
     }
-
     Row aRow(x, r);
-    ChannelSet bty = m_targetLayer.intersection(channels);
+    ChannelSet bty = m_targetLayer.intersection(inChannels);
     ChannelSet aovs = activeChannels - bty;
 
     map<unsigned, float*> btyPtrIdxMap;
+    map<Channel, const float*> aovInPtrIdxMap;
 
-    foreach(channel, bty) 
-    {
+    foreach(channel, bty) {
         unsigned chanIdx = colourIndex(channel);
-        btyPtrIdxMap[chanIdx] = aRow.writableConstant(0.0f, channel);
+        float* rowBtyChan;
+        if (m_operation != operationModes(COPY))
+        {
+            LayerAlchemy::Utilities::hard_copy(in, x, r, channel, aRow);
+            rowBtyChan = aRow.writable(channel);
+        } else
+        {
+            rowBtyChan = aRow.writableConstant(0.0f, channel);
+        }
+        btyPtrIdxMap[chanIdx] = rowBtyChan;
     }
 
-    if (m_operation != operationModes(COPY))
-    {
-        LayerSet::utilities::hard_copy(in, x, r, bty, aRow);
-    }
+    LayerAlchemy::Utilities::hard_copy(in, x, r, aovs, aRow);
 
     for (const auto& kvp : btyPtrIdxMap) 
     {
@@ -132,11 +136,12 @@ void FlattenLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelMa
 
         foreach(aov, aovs)
         {
-            if (in.is_zero(aov) || btyChanIdx != colourIndex(aov))
+            if (btyChanIdx != colourIndex(aov))
             {
                 continue;
             }
-            const float* inAovChan = in[aov];
+            const float* inAovChan = aRow[aov];
+
             for (int X = x; X < r; X++)
             {
                 float aovPixel = inAovChan[X];
@@ -150,12 +155,12 @@ void FlattenLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelMa
             }
         }
     }
-    LayerSet::utilities::hard_copy(aRow, x, r, bty, out);
+    LayerAlchemy::Utilities::hard_copy(aRow, x, r, inChannels, out);
 }
 
 void FlattenLayerSet::knobs(Knob_Callback f) {
-    LayerSet::LayerSetKnob(f, m_lsKnobData);
-    createDocumentationButton(f);
+    LayerAlchemy::LayerSetKnob::LayerSetKnob(f, m_lsKnobData);
+    LayerAlchemy::Knobs::createDocumentationButton(f);
     Divider(f, 0); // separates layer set knobs from the rest
 
     Enumeration_knob(f, &m_operation, operationNames, "operation", "operation");
@@ -166,3 +171,4 @@ void FlattenLayerSet::knobs(Knob_Callback f) {
     Input_ChannelMask_knob(f, &m_targetLayer, 0, "target layer");
     Tooltip(f, "<p>Selects which layer to output the processing to</p>");
 }
+} // End namespace FlattenLayerSet

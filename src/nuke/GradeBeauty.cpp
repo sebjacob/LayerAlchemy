@@ -213,7 +213,7 @@ public:
     ChannelSet activeChannelSet() const;
     // pixel engine function when anything but the target layer is requested to render
     void channelPixelEngine(const Row&, int, int, int, ChannelMask, Row&);
-    // pixel engine functon when the target layer is requested to render
+    // pixel engine function when the target layer is requested to render
     void beautyPixelEngine(const Row&, int y, int x, int r, ChannelSet&, Row&);
 
 };
