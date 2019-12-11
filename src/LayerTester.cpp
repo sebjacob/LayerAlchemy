@@ -26,7 +26,7 @@ void _printLayerMapTopology(LayerCollection *layerCollection, const StrVecType l
         layerCollection->topology(layerNames, topologyStyle::lexical), "Topology style : LEXICAL");
 }
 
-int main(int argc, char *argv[])
+int main(int argc, const char* argv[])
 {
     if ((getenv(CHANNEL_ENV_VAR) == NULL) | (getenv(LAYER_ENV_VAR) == NULL))
     {
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     {
         string usage =
             "\nLayerTester " + emojiSick + "\n" + DESCRIPTION +
-            "\n\nLayerAlchemy 0.6.0 https://github.com/sebjacob/LayerAlchemy\n";
+            "\n\nLayerAlchemy 0.8.0 https://github.com/sebjacob/LayerAlchemy\n";
         std::cout << usage << std::endl;
         parser.print_help();
 

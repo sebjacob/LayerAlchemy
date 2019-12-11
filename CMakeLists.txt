@@ -49,7 +49,7 @@ ExternalProject_Add(argparse
     # A simple C++ header only command line argument parser
     # Jesse Laning https://github.com/jamolnng
     GIT_REPOSITORY https://github.com/jamolnng/argparse.git
-    GIT_TAG master
+    GIT_TAG v0.1.0
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
     CONFIGURE_COMMAND ""
