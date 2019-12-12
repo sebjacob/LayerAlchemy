@@ -3,7 +3,8 @@
 namespace LayerAlchemy {
 namespace LayerSet {
 
-StrVecType getLayerNames(const DD::Image::ChannelSet& inChannels) {
+StrVecType getLayerNames(const DD::Image::ChannelSet& inChannels)
+{
     DD::Image::ChannelSet selectedChannels;
     StrVecType layerNames;
 
@@ -18,7 +19,8 @@ StrVecType getLayerNames(const DD::Image::ChannelSet& inChannels) {
     return layerNames;
 }
 
-ChannelSetMapType _layerMaptoChannelMap(const LayerMap& layerMap, const DD::Image::ChannelSet& inChannels) {
+ChannelSetMapType _layerMaptoChannelMap(const LayerMap& layerMap, const DD::Image::ChannelSet& inChannels)
+{
     ChannelSetMapType channelSetLayerMap;
     for (auto& kvp : layerMap.strMap) {
         foreach (channel, inChannels) {
@@ -31,20 +33,23 @@ ChannelSetMapType _layerMaptoChannelMap(const LayerMap& layerMap, const DD::Imag
     return channelSetLayerMap;
 }
 
-ChannelSetMapType categorizeChannelSet(const LayerCollection& collection, const DD::Image::ChannelSet& inChannels) {
+ChannelSetMapType categorizeChannelSet(const LayerCollection& collection, const DD::Image::ChannelSet& inChannels)
+{
     StrVecType inLayers = LayerSet::getLayerNames(inChannels);
     LayerMap layerMap = collection.categorizeLayers(inLayers, categorizeType::pub);
     return _layerMaptoChannelMap(layerMap, inChannels);
 }
 
-ChannelSetMapType categorizeChannelSet(const LayerCollection& collection, const DD::Image::ChannelSet& inChannels, const CategorizeFilter& categorizeFilter) {
+ChannelSetMapType categorizeChannelSet(const LayerCollection& collection, const DD::Image::ChannelSet& inChannels, const CategorizeFilter& categorizeFilter)
+{
     StrVecType inLayers = LayerSet::getLayerNames(inChannels);
     LayerMap layerMap = collection.categorizeLayers(inLayers, categorizeType::pub, categorizeFilter);
     layerMap.strMap.erase("all"); // not useful for Nuke when CategorizeFilter is used
     return _layerMaptoChannelMap(layerMap, inChannels);
 }
 
-StrVecType getCategories(const ChannelSetMapType& channelSetLayerMap) {
+StrVecType getCategories(const ChannelSetMapType& channelSetLayerMap)
+{
     StrVecType categories;
     categories.reserve(channelSetLayerMap.size());
     for (auto& kvp : channelSetLayerMap) {
@@ -53,7 +58,8 @@ StrVecType getCategories(const ChannelSetMapType& channelSetLayerMap) {
     return categories;
 }
 
-DD::Image::ChannelSet getChannelSet(const ChannelSetMapType& channelSetLayerMap) {
+DD::Image::ChannelSet getChannelSet(const ChannelSetMapType& channelSetLayerMap)
+{
     DD::Image::ChannelSet channels;
     for (auto& kvp : channelSetLayerMap) {
         channels += kvp.second;
@@ -64,7 +70,8 @@ DD::Image::ChannelSet getChannelSet(const ChannelSetMapType& channelSetLayerMap)
 } // End namespace LayerSet
 namespace Knobs {
 
-DD::Image::Knob* createDocumentationButton(DD::Image::Knob_Callback& f) {
+DD::Image::Knob* createDocumentationButton(DD::Image::Knob_Callback& f)
+{
     DD::Image::Knob* docButton = Button(f, "docButton", "documentation");
     Tooltip(f, "<p>This will launch the default browser and load the included plugin documentation</p>");
     return docButton;
@@ -79,9 +86,18 @@ DD::Image::Knob* createColorKnobResetButton(DD::Image::Knob_Callback& f) {
     "    knob.setValue(knob.defaultValue())\n";
     return PyScript_knob(f, colorKnobResetScript, "reset values");
 }
+DD::Image::Knob* createVersionTextKnob(DD::Image::Knob_Callback& f)
+{
+    string label = "<font color='DimGrey'>v" + LAYER_ALCHEMY_VERSION_STRING + "</font>";
+    DD::Image::Knob* versionTextKnob = Text_knob(f, label.c_str());
+    return versionTextKnob;
+}
+
+
 } // End namespace Knobs
 
 namespace Utilities {
+
 void validateTargetLayerColorIndex(DD::Image::Op* t_op, const DD::Image::ChannelSet& targetLayer, unsigned minIndex, unsigned
 maxIndex)
 {

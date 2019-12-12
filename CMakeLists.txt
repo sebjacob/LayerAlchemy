@@ -5,11 +5,20 @@ cmake_minimum_required(VERSION 2.8)
 include(BundleUtilities)
 include(ExternalProject)
 
-set(PROJECT_NAME LayerAlchemy)
-set(LAYER_ALCHEMY_VERSION_MAJOR 0)
-set(LAYER_ALCHEMY_VERSION_MINOR 8)
-set(LAYER_ALCHEMY_VERSION_PATCH 0)
+project(LayerAlchemy)
 
+# get the LayerAlchemy version info
+set(LAYER_ALCHEMY_VERSION_HEADER_FILE ${CMAKE_SOURCE_DIR}/include/version.h)
+file(READ ${LAYER_ALCHEMY_VERSION_HEADER_FILE} version)
+string(REGEX MATCH "#define LAYER_ALCHEMY_VERSION_MAJOR ([0-9]*)" _ ${version})
+set(LAYER_ALCHEMY_VERSION_MAJOR ${CMAKE_MATCH_1})
+string(REGEX MATCH "#define LAYER_ALCHEMY_VERSION_MINOR ([0-9]*)" _ ${version})
+set(LAYER_ALCHEMY_VERSION_MINOR ${CMAKE_MATCH_1})
+string(REGEX MATCH "#define LAYER_ALCHEMY_VERSION_PATCH ([0-9]*)" _ ${version})
+set(LAYER_ALCHEMY_VERSION_PATCH ${CMAKE_MATCH_1})
+set(LAYER_ALCHEMY_VERSION_STRING
+    ${LAYER_ALCHEMY_VERSION_MAJOR}.${LAYER_ALCHEMY_VERSION_MINOR}.${LAYER_ALCHEMY_VERSION_PATCH}
+)
 option(BUILD_APPS "Build binary applications" ON)
 option(BUILD_DOCS "Build html documentation" ON)
 option(BUILD_NUKE "Build the Nuke plugins" ON)
@@ -66,7 +75,9 @@ include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}/argparse-prefix/src/argparse
 )
 
-set(LAYERSET_LIBS 
+#configure_file(include/version.h.in ${CMAKE_SOURCE_DIR}/include/version.h.in)
+#configure_file("${CMAKE_SOURCE_DIR}/include/version.h.in" "${CMAKE_BINARY_DIR}/include/version.h" @ONLY)
+set(LAYERSET_LIBS
     LayerSetConfig
     LayerSetCore
 )
@@ -115,6 +126,10 @@ install(
     FILES ${TEXT_FILES}
     DESTINATION ${CMAKE_INSTALL_PREFIX}/
 )
+install(
+    FILES ${LAYER_ALCHEMY_VERSION_HEADER_FILE}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+)
 
 if(BUILD_NUKE)
     add_subdirectory(src/nuke)
@@ -130,10 +145,10 @@ else()
     string(TOLOWER ${CMAKE_SYSTEM_NAME} platformName)
 endif()
 
-set(PROJECT_PACKAGE_NAME "${PROJECT_NAME}-${LAYER_ALCHEMY_VERSION_MAJOR}.${LAYER_ALCHEMY_VERSION_MINOR}.${LAYER_ALCHEMY_VERSION_PATCH}-${platformName}")
+set(PROJECT_PACKAGE_NAME "${PROJECT_NAME}-${LAYER_ALCHEMY_VERSION_STRING}-${platformName}")
 
 if(BUILD_NUKE)
-    set(PROJECT_PACKAGE_NAME "${PROJECT_NAME}-${LAYER_ALCHEMY_VERSION_MAJOR}.${LAYER_ALCHEMY_VERSION_MINOR}.${LAYER_ALCHEMY_VERSION_PATCH}-nuke-${NUKE_RELEASE}-${platformName}")
+    set(PROJECT_PACKAGE_NAME "${PROJECT_NAME}-${LAYER_ALCHEMY_VERSION_STRING}-nuke-${NUKE_RELEASE}-${platformName}")
 endif()
 
 
@@ -142,8 +157,6 @@ if (WIN32)
 else()
     set(PROJECT_PACKAGE_COMMAND  "cfvz" "${PROJECT_PACKAGE_NAME}.tgz" "${CMAKE_INSTALL_PREFIX}")
 endif()
-
-# Use CPack
 
 add_custom_target(package
     COMMENT "creating package for ${PROJECT_PACKAGE_NAME}"

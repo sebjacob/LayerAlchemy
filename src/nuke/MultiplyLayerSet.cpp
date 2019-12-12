@@ -1,6 +1,5 @@
 #include <DDImage/Knobs.h>
 #include <DDImage/Row.h>
-#include <DDImage/PixelIop.h>
 #include <DDImage/NukeWrapper.h>
 
 #include "LayerSet.h"
@@ -50,7 +49,8 @@ const Iop::Description MultiplyLayerSet::description(
 );
 
 // update layer set knob and gather selectedChannels
-void MultiplyLayerSet::_validate(bool for_real) {
+void MultiplyLayerSet::_validate(bool for_real)
+{
     copy_info(); // this copies the input info to the output
     ChannelSet inChannels = info_.channels();
     if (validateLayerSetKnobUpdate(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels)) {
@@ -59,12 +59,10 @@ void MultiplyLayerSet::_validate(bool for_real) {
     set_out_channels(activeChannelSet());
 }
 
-void MultiplyLayerSet::in_channels(int input, ChannelSet& mask) const {
-    // mask is unchanged
-}
+void MultiplyLayerSet::in_channels(int input, ChannelSet& mask) const {}
 
-void MultiplyLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelMask channels, Row& out) {
-
+void MultiplyLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelMask channels, Row& out)
+{
     foreach(z, channels) {
         const float c = m_multValue[colourIndex(z)];
         const float* inptr = in[z] + x;
@@ -75,9 +73,11 @@ void MultiplyLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelM
     }
 }
 
-void MultiplyLayerSet::knobs(Knob_Callback f) {
+void MultiplyLayerSet::knobs(Knob_Callback f)
+{
     LayerAlchemy::LayerSetKnob::LayerSetKnob(f, m_lsKnobData);
     LayerAlchemy::Knobs::createDocumentationButton(f);
+    LayerAlchemy::Knobs::createVersionTextKnob(f);
     Divider(f, 0); // separates layer set knobs from the rest
     AColor_knob(f, m_multValue, IRange(0, 4), "value");
 }

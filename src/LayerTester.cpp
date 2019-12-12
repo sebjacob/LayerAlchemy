@@ -3,14 +3,21 @@
  * This will just print out various methods of categorizing.
  */
 #include <iostream>
-#include <iterator>
 
 #include "argparse.h"
 
 #include "LayerSetCore.h"
+#include "version.h"
 
-static const string emojiSick = "\xF0\x9F\x98\xB7 ";
+static const std::string emojiSick = "\xF0\x9F\x98\xB7 ";
+static const string redText = "\x1B[31m";
+static const string endColor = "\033[0m";
 static const std::string DESCRIPTION = "Simple executable to test the layer categorization";
+static const string LAYER_ALCHEMY_PROJECT_URL = "https://github.com/sebjacob/LayerAlchemy";
+static const std::string HEADER =
+    "\nLayerTester " + emojiSick + "\n" + DESCRIPTION +
+    "\n\nLayerAlchemy " + LAYER_ALCHEMY_VERSION_STRING + "\n" +
+     LAYER_ALCHEMY_PROJECT_URL + "\n";
 
 void _printLayerMap(const LayerMap &layerMap, std::string message)
 {
@@ -30,10 +37,10 @@ int main(int argc, const char* argv[])
 {
     if ((getenv(CHANNEL_ENV_VAR) == NULL) | (getenv(LAYER_ENV_VAR) == NULL))
     {
-        std::cerr << "\nMISSING ENVIRONMENT VARIABLES" << std::endl;
-        std::cerr << "\nYou need to set paths to yaml files in "
-        << LAYER_ENV_VAR << " and " << CHANNEL_ENV_VAR << " environment variables\n"
-        << std::endl;
+        std::cerr << HEADER << std::endl;
+        std::cerr << redText << std::endl << "MISSING ENVIRONMENT VARIABLES" << std::endl;
+        std::cerr << std::endl << "You need to set environment variables pointing to yaml files for :\n"
+        << std::endl << LAYER_ENV_VAR << std::endl << CHANNEL_ENV_VAR << std::endl << endColor << std::endl;
         return 1;
     }
     ArgumentParser parser(DESCRIPTION);
@@ -48,10 +55,7 @@ int main(int argc, const char* argv[])
     }
     catch (const ArgumentParser::ArgumentNotFound &ex)
     {
-        string usage =
-            "\nLayerTester " + emojiSick + "\n" + DESCRIPTION +
-            "\n\nLayerAlchemy 0.8.0 https://github.com/sebjacob/LayerAlchemy\n";
-        std::cout << usage << std::endl;
+        std::cout << HEADER << std::endl;
         parser.print_help();
 
         std::cout << ex.what() << std::endl;

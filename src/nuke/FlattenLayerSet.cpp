@@ -11,15 +11,16 @@ namespace FlattenLayerSet {
 using namespace DD::Image;
 
 static const char* const HELP =
-        "<p>This PixelIop manipulates pixel values of a target layer by adding layers"
-        " from a layer set in the incoming image stream.</p>"
-        ;
+    "<p>This PixelIop manipulates pixel values of a target layer by adding layers"
+    " from a layer set in the incoming image stream.</p>"
+    ;
 
 // exclude non color layers, makes no sense for this node
 static const StrVecType categoryExcludeFilterList = {"non_color", "base_color", "albedo"};
 static const CategorizeFilter excludeLayerFilter(categoryExcludeFilterList, CategorizeFilter::modes::EXCLUDE);
 
-static const StrVecType categoryFilterList = {
+static const StrVecType categoryFilterList =
+{
     "beauty_direct_indirect", "beauty_shading_global", "light_group", "beauty_shading"
 };
 static const CategorizeFilter layerFilter(categoryFilterList, CategorizeFilter::modes::INCLUDE);
@@ -54,13 +55,14 @@ public:
     ChannelSet activeChannelSet() const;
 };
 
-FlattenLayerSet::FlattenLayerSet(Node* node) : PixelIop(node) {
+FlattenLayerSet::FlattenLayerSet(Node* node) : PixelIop(node)
+{
     m_operation = operationModes::COPY;
     m_targetLayer = Mask_RGB;
-
 }
 
-static Op* build(Node* node) {
+static Op* build(Node* node)
+{
     return (new FlattenLayerSet(node));
 }
 
@@ -72,38 +74,43 @@ const Iop::Description FlattenLayerSet::description(
     build
 );
 
-void FlattenLayerSet::in_channels(int input_number, ChannelSet& mask) const {
+void FlattenLayerSet::in_channels(int input_number, ChannelSet& mask) const
+{
     mask += ChannelMask(activeChannelSet());
 }
 
-ChannelSet FlattenLayerSet::activeChannelSet() const {
+ChannelSet FlattenLayerSet::activeChannelSet() const
+{
     ChannelSet outChans;
     foreach(channel, ChannelSet(m_targetLayer + m_lsKnobData.m_selectedChannels))
     {
-        if (colourIndex(channel) <= 2) {
+        if (colourIndex(channel) <= 2)
+        {
             outChans += channel;
         }
     }
     return outChans;
 }
 
-void FlattenLayerSet::_validate(bool for_real) {
+void FlattenLayerSet::_validate(bool for_real)
+{
     copy_info(); // this copies the input info to the output
     ChannelSet inChannels = info_.channels();
     LayerAlchemy::Utilities::validateTargetLayerColorIndex(this, m_targetLayer, 0, 2);
-    if (validateLayerSetKnobUpdate(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels, excludeLayerFilter)) {
+    if (validateLayerSetKnobUpdate(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels, excludeLayerFilter))
+    {
         updateLayerSetKnob(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels, excludeLayerFilter);
     }
     set_out_channels(activeChannelSet());
 }
 
-void FlattenLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelMask channels, Row& out) {
+void FlattenLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelMask channels, Row& out)
+{
     ChannelSet inChannels = ChannelSet(channels);
     ChannelSet activeChannels = activeChannelSet();
     bool isTargetLayer = m_targetLayer.intersection(inChannels).size() == m_targetLayer.size();
     if (!isTargetLayer)
     {
-        out.copy(in, inChannels, x, r);
         return;
     }
     Row aRow(x, r);
@@ -158,17 +165,20 @@ void FlattenLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelMa
     LayerAlchemy::Utilities::hard_copy(aRow, x, r, inChannels, out);
 }
 
-void FlattenLayerSet::knobs(Knob_Callback f) {
+void FlattenLayerSet::knobs(Knob_Callback f)
+{
     LayerAlchemy::LayerSetKnob::LayerSetKnob(f, m_lsKnobData);
     LayerAlchemy::Knobs::createDocumentationButton(f);
+    LayerAlchemy::Knobs::createVersionTextKnob(f);
+
     Divider(f, 0); // separates layer set knobs from the rest
 
+    Input_ChannelMask_knob(f, &m_targetLayer, 0, "target layer");
+    Tooltip(f, "<p>Selects which layer to output the processing to</p>");
     Enumeration_knob(f, &m_operation, operationNames, "operation", "operation");
     Tooltip(f, "<p>Selects a type of processing</p>"
             "<b>copy</b> : copies the added layers in the layer set to the target layer\n"
             "<b>add</b> : add the added layers in the layer set to the target layer\n"
             "<b>remove</b> : subtracts the added layers in the layer set to the target layer");
-    Input_ChannelMask_knob(f, &m_targetLayer, 0, "target layer");
-    Tooltip(f, "<p>Selects which layer to output the processing to</p>");
 }
 } // End namespace FlattenLayerSet

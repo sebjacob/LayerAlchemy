@@ -1,6 +1,6 @@
-#include "DDImage/Row.h"
-#include "DDImage/Iop.h"
-#include "DDImage/Knobs.h"
+#include <DDImage/Row.h>
+#include <DDImage/Iop.h>
+#include <DDImage/Knobs.h>
 
 #include "LayerSet.h"
 #include "LayerSetKnob.h"
@@ -38,12 +38,14 @@ public:
     ChannelSet activeChannelSet() const {return ChannelSet(m_lsKnobData.m_selectedChannels);}
 
 };
-RemoveLayerSet::RemoveLayerSet(Node* node) : Iop(node) {
+RemoveLayerSet::RemoveLayerSet(Node* node) : Iop(node)
+{
     m_operation = 1;
     m_keepRGBA = true;
 }
 
-static Iop* build(Node* node) {
+static Iop* build(Node* node)
+{
     return new RemoveLayerSet(node);
 }
 
@@ -55,7 +57,8 @@ const Iop::Description RemoveLayerSet::description(
     build
 );
 
-void RemoveLayerSet::_validate(bool for_real) {
+void RemoveLayerSet::_validate(bool for_real)
+{
     copy_info(); // this copies the input info to the output
     ChannelSet inChannels = info_.channels();
     if (validateLayerSetKnobUpdate(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels)) {
@@ -76,18 +79,22 @@ void RemoveLayerSet::_validate(bool for_real) {
     }
 }
 
-void RemoveLayerSet::_request(int x, int y, int r, int t, ChannelMask c1, int count) {
+void RemoveLayerSet::_request(int x, int y, int r, int t, ChannelMask c1, int count)
+{
     input0().request(x, y, r, t, c1, count);
 }
 
-void RemoveLayerSet::engine(int y, int x, int r, ChannelMask c1, Row& out_row) {
+void RemoveLayerSet::engine(int y, int x, int r, ChannelMask c1, Row& out_row)
+{
     out_row.get(input0(), y, x, r, c1);
     return;
 }
 
-void RemoveLayerSet::knobs(Knob_Callback f) {
+void RemoveLayerSet::knobs(Knob_Callback f)
+{
     LayerAlchemy::LayerSetKnob::LayerSetKnob(f, m_lsKnobData);
     LayerAlchemy::Knobs::createDocumentationButton(f);
+    LayerAlchemy::Knobs::createVersionTextKnob(f);
     Divider(f, 0); // separates layer set knobs from the rest
 
     Enumeration_knob(f, &m_operation, enumOperation, "operation");

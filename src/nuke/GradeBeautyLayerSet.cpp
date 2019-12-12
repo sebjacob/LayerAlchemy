@@ -1,7 +1,6 @@
 #include "math.h"
 
 #include <DDImage/Row.h>
-#include <DDImage/PixelIop.h>
 #include <DDImage/NukeWrapper.h>
 
 #include "LayerSet.h"
@@ -371,7 +370,7 @@ void GradeBeautyLayerSet::knobs(Knob_Callback f) {
     LayerAlchemy::LayerSetKnob::LayerSetKnob(f, m_lsKnobData);
     LayerAlchemy::Knobs::createDocumentationButton(f);
     LayerAlchemy::Knobs::createColorKnobResetButton(f);
-
+    LayerAlchemy::Knobs::createVersionTextKnob(f);
     Divider(f, 0); // separates layer set knobs from the rest
 
     Input_ChannelMask_knob(f, &m_targetLayer, 0, "target layer");

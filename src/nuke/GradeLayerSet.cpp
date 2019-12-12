@@ -1,7 +1,5 @@
-#include <DDImage/PixelIop.h>
 #include <DDImage/Knobs.h>
 #include <DDImage/Row.h>
-#include <DDImage/DDMath.h>
 #include <DDImage/NukeWrapper.h>
 
 #include "LayerSet.h"
@@ -29,7 +27,8 @@ static bool LINUX = false;
 LINUX = true;
 #endif
 
-float validateGammaValue(const float& gammaValue) {
+float validateGammaValue(const float& gammaValue)
+{
     if (LINUX) {
         if (gammaValue < 0.008f) {
             return 0.0f;
@@ -74,12 +73,12 @@ public:
     void precomputeValues();
     // channel set that contains all channels that are modified by the node
     ChannelSet activeChannelSet() const {return ChannelSet(m_lsKnobData.m_selectedChannels);}
-
 };
-GradeLayerSet::GradeLayerSet(Node* node) : PixelIop(node) {
-}
 
-static Op* build(Node* node) {
+GradeLayerSet::GradeLayerSet(Node* node) : PixelIop(node) {}
+
+static Op* build(Node* node)
+{
     return (new NukeWrapper(new GradeLayerSet(node)))->noChannels()->mixLuminance();
 }
 GradeLayerSet::~GradeLayerSet() {}
@@ -90,11 +89,10 @@ const Iop::Description GradeLayerSet::description(
     build
 );
 
-void GradeLayerSet::in_channels(int input, ChannelSet& mask) const {
-//mask is unchanged
-}
+void GradeLayerSet::in_channels(int input, ChannelSet& mask) const {}
 
-void GradeLayerSet::_validate(bool for_real) {
+void GradeLayerSet::_validate(bool for_real)
+{
     bool change_zero = false;
     precomputeValues();
     if (change_zero) {
@@ -108,7 +106,8 @@ void GradeLayerSet::_validate(bool for_real) {
     }
     set_out_channels(activeChannelSet());
 }
-void GradeLayerSet::precomputeValues() {
+void GradeLayerSet::precomputeValues()
+{
     for (int chanIdx = 0; chanIdx < 3; chanIdx++) {
         float a = whitepoint[chanIdx] - blackpoint[chanIdx];
         a = a ? (gain[chanIdx] - lift[chanIdx]) / a : 10000.0f;
@@ -121,8 +120,8 @@ void GradeLayerSet::precomputeValues() {
     }
 }
 
-void GradeLayerSet::pixel_engine(const Row& in, int y, int x, int r,
-                                 ChannelMask inChannels, Row& out) {
+void GradeLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelMask inChannels, Row& out)
+{
     Row aRow(x, r);
 
     map<Channel, float*> aovPtrIdxMap;
@@ -218,10 +217,12 @@ void GradeLayerSet::pixel_engine(const Row& in, int y, int x, int r,
     LayerAlchemy::Utilities::hard_copy(aRow, x, r, inChannels, out);
 }
 
-void GradeLayerSet::knobs(Knob_Callback f) {
+void GradeLayerSet::knobs(Knob_Callback f)
+{
     LayerAlchemy::LayerSetKnob::LayerSetKnob(f, m_lsKnobData);
     LayerAlchemy::Knobs::createDocumentationButton(f);
     LayerAlchemy::Knobs::createColorKnobResetButton(f);
+    LayerAlchemy::Knobs::createVersionTextKnob(f);
     Divider(f, 0); // separates layer set knobs from the rest
 
     AColor_knob(f, blackpoint, IRange(-1, 1), "blackpoint");

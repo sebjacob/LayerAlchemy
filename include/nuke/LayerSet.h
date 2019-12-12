@@ -6,6 +6,7 @@
 #include <DDImage/Row.h>
 
 #include "LayerSetCore.h"
+#include "version.h"
 
 namespace LayerAlchemy {
 
@@ -36,5 +37,6 @@ namespace Utilities {
 namespace Knobs {
     DD::Image::Knob* createDocumentationButton(DD::Image::Knob_Callback&);
     DD::Image::Knob* createColorKnobResetButton(DD::Image::Knob_Callback&);
+    DD::Image::Knob* createVersionTextKnob(DD::Image::Knob_Callback&);
 } //  End namespace Knobs
 } //  End namespace LayerAlchemy

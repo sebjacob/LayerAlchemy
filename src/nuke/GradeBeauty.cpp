@@ -1,7 +1,6 @@
 #include "math.h"
 
 #include <DDImage/Row.h>
-#include <DDImage/PixelIop.h>
 #include <DDImage/NukeWrapper.h>
 
 #include "LayerSet.h"
@@ -38,7 +37,8 @@ static const char* DEFAULT_VALUE_PYSCRIPT =
 
 namespace BeautyLayerSetConstants {
     // frequently used lists of layer set category names 
-    namespace categories {
+    namespace categories
+    {
         static const StrVecType all = {
             "beauty_direct_indirect", "beauty_shading_global", "light_group", "beauty_shading"
         };
@@ -47,7 +47,8 @@ namespace BeautyLayerSetConstants {
         static const StrVecType global = {"beauty_shading_global", "beauty_direct_indirect"};
     }
     // frequently used lists of layers 
-    namespace layers {
+    namespace layers
+    {
         static const StrVecType all = LayerAlchemy::layerCollection.layers[categories::all];
         static const StrVecType shading = LayerAlchemy::layerCollection.layers[categories::shading];
         static const StrVecType nonShading = LayerAlchemy::layerCollection.layers[categories::nonShading];
@@ -62,7 +63,8 @@ static const CategorizeFilter CategorizeFilterAllBeauty(BeautyLayerSetConstants:
 
 //The two modes that define the default value of this node's color knobs, and the math formula to apply
 enum GRADE_BEAUTY_MATH_MODE {
-    STOPS = 0, MULTIPLY
+    STOPS = 0,
+    MULTIPLY
 };
 //defines the range of the Color_Knobs for each mode
 static  map<int, std::array<int, 2 >> COLOR_KNOB_RANGES = {
@@ -71,9 +73,7 @@ static  map<int, std::array<int, 2 >> COLOR_KNOB_RANGES = {
 };
 
 // names to be used in the enumeration knob to describe the mathModes
-static const char* const mathModeNames[] = {
-    "stops", "multiply", 0
-};
+static const char* const mathModeNames[] = {"stops", "multiply", 0};
 //name given to the knob that acts on all layers
 static const char* const MASTER_KNOB_NAME = "master";
 /**
@@ -93,6 +93,7 @@ static const char* const MASTER_KNOB_NAME = "master";
  *  - stores relevant values, as to keep any logic out of the pixel_engine
  */
 class GradeBeautyValueMap {
+
 private:
     map<string, float[3]> m_valueMap;
     map<string, vector<float*>> ptrValueMap;
@@ -101,20 +102,26 @@ public:
     vector<Knob*> m_colorKnobs;
 
     //initializes the layer value mapping and interconnect between of layers
-    GradeBeautyValueMap() {
+    GradeBeautyValueMap()
+    {
         LayerMap layerMapBeautyShading = LayerAlchemy::layerCollection.categorizeLayers(layers::shading, categorizeType::pub);
         m_colorKnobs.reserve(categories::all.size() + 1);
         float* ptrMaster = m_valueMap[MASTER_KNOB_NAME];
         ptrValueMap[MASTER_KNOB_NAME].emplace_back(ptrMaster);
-        for (auto iterLayer = layers::all.begin(); iterLayer != layers::all.end(); iterLayer++) {
+        for (auto iterLayer = layers::all.begin(); iterLayer != layers::all.end(); iterLayer++)
+        {
             ptrValueMap[*iterLayer].emplace_back(m_valueMap[*iterLayer]);
             ptrValueMap[*iterLayer].emplace_back(ptrMaster);
         }
 
-        for (auto iterLayer = layers::shading.begin(); iterLayer != layers::shading.end(); iterLayer++) {
-            for (auto iterGlobal = layers::global.begin(); iterGlobal != layers::global.end(); iterGlobal++) {
-                if (layerMapBeautyShading.contains(*iterGlobal)) {
-                    if (layerMapBeautyShading.isMember(*iterGlobal, *iterLayer)) {
+        for (auto iterLayer = layers::shading.begin(); iterLayer != layers::shading.end(); iterLayer++)
+        {
+            for (auto iterGlobal = layers::global.begin(); iterGlobal != layers::global.end(); iterGlobal++)
+            {
+                if (layerMapBeautyShading.contains(*iterGlobal))
+                {
+                    if (layerMapBeautyShading.isMember(*iterGlobal, *iterLayer))
+                    {
                         ptrValueMap[*iterLayer].emplace_back(m_valueMap[*iterGlobal]);
                     }
                 }
@@ -124,7 +131,8 @@ public:
     }
 
     // returns a vector of pointers to all float values associated with this layer at a specific color index
-    vector<float*> layerValuePointersForIndex(const string& layerName, const int& colorIndex) const {
+    vector<float*> layerValuePointersForIndex(const string& layerName, const int& colorIndex) const
+    {
         vector<float*> outputVector;
         auto it = ptrValueMap.find(layerName);
         int amount = it->second.size();
@@ -136,13 +144,15 @@ public:
     }
 
     //returns the pointer specific to this layer
-    float* getLayerFloatPointer(const string& knobName) const {
+    float* getLayerFloatPointer(const string& knobName) const
+    {
         return ptrValueMap.find(knobName)->second[0]; // the first index if where the layer pointer is.
     }
 
     // computes, for a given layer name, the total value to multiply the pixels with at a specific color index for any given
     // math mode
-    float getLayerMultiplier(const string& layerName, const int& colorIndex, const int& mode) const {
+    float getLayerMultiplier(const string& layerName, const int& colorIndex, const int& mode) const
+    {
         vector<float*> values = layerValuePointersForIndex(layerName, colorIndex);
         float out = 0.0f;
         if (mode == GRADE_BEAUTY_MATH_MODE::STOPS) {
@@ -161,7 +171,8 @@ public:
         }
         return out;
     }
-    bool isDefault(const string& layerName,  const int& mode) const {
+    bool isDefault(const string& layerName,  const int& mode) const
+    {
         float sum = 0;
         for (int colorIndex = 0; colorIndex < 3; colorIndex++ ){
             sum += getLayerFloatPointer(layerName)[colorIndex];
@@ -169,13 +180,13 @@ public:
         bool isDefault = (sum == (float) mode);
         return isDefault;
     }
-    void addColorKnob(DD::Image::Knob* knob) {
+    void addColorKnob(DD::Image::Knob* knob)
+    {
         m_colorKnobs.emplace_back(knob);
     }
 };
 
 class GradeBeauty : public DD::Image::PixelIop {
-
 private:
     LayerAlchemy::LayerSetKnob::LayerSetKnobData m_lsKnobData;
     int m_mathMode {GRADE_BEAUTY_MATH_MODE::STOPS};
@@ -218,10 +229,10 @@ public:
 
 };
 
-GradeBeauty::GradeBeauty(Node* node) : PixelIop(node) {
-}
+GradeBeauty::GradeBeauty(Node* node) : PixelIop(node) {}
 
-static Op* build(Node* node) {
+static Op* build(Node* node)
+{
     return (new NukeWrapper(new GradeBeauty(node)))->noChannels()->noUnpremult()->mixLuminance();
 }
 
@@ -233,11 +244,13 @@ const Iop::Description GradeBeauty::description(
     build
 );
 
-void GradeBeauty::in_channels(int input_number, ChannelSet& mask) const {
+void GradeBeauty::in_channels(int input_number, ChannelSet& mask) const
+{
     mask += ChannelMask(activeChannelSet());
 }
 
-ChannelSet GradeBeauty::activeChannelSet() const {
+ChannelSet GradeBeauty::activeChannelSet() const
+{
     ChannelSet outChans;
     foreach(z, ChannelSet(m_targetLayer + m_lsKnobData.m_selectedChannels))
     {
@@ -250,12 +263,14 @@ ChannelSet GradeBeauty::activeChannelSet() const {
 }
 
 
-void GradeBeauty::_validate(bool for_real) {
+void GradeBeauty::_validate(bool for_real)
+{
     copy_info(); // this copies the input info to the output
     ChannelSet inChannels = info_.channels();
     LayerAlchemy::Utilities::validateTargetLayerColorIndex(this, m_targetLayer, 0, 2);
 
-    if (validateLayerSetKnobUpdate(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels, CategorizeFilterAllBeauty)) {
+    if (validateLayerSetKnobUpdate(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels, CategorizeFilterAllBeauty))
+    {
         updateLayerSetKnob(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels, CategorizeFilterAllBeauty);
         setKnobVisibility();
         setKnobRanges(m_mathMode, false);
@@ -351,7 +366,8 @@ void GradeBeauty::beautyPixelEngine(const Row& in, int y, int x, int r, ChannelS
     }
 }
 
-void GradeBeauty::pixel_engine(const Row& in, int y, int x, int r, ChannelMask channels, Row& out) {
+void GradeBeauty::pixel_engine(const Row& in, int y, int x, int r, ChannelMask channels, Row& out)
+{
 
     ChannelSet inChannels = ChannelSet(channels);
     ChannelSet activeChannels = activeChannelSet();
@@ -369,11 +385,14 @@ void GradeBeauty::pixel_engine(const Row& in, int y, int x, int r, ChannelMask c
     LayerAlchemy::Utilities::hard_copy(aRow, x, r, inChannels, out);
 }
 
-void GradeBeauty::knobs(Knob_Callback f) {
+void GradeBeauty::knobs(Knob_Callback f)
+{
     bool colorKnobVectorComplete = colorKnobsPopulated();
+
     LayerAlchemy::LayerSetKnob::LayerSetKnob(f, m_lsKnobData);
     LayerAlchemy::Knobs::createDocumentationButton(f);
     LayerAlchemy::Knobs::createColorKnobResetButton(f);
+    LayerAlchemy::Knobs::createVersionTextKnob(f);
     Divider(f, 0); // separates layer set knobs from the rest
 
     Input_ChannelMask_knob(f, &m_targetLayer, 0, "target layer");
