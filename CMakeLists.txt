@@ -75,8 +75,6 @@ include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}/argparse-prefix/src/argparse
 )
 
-#configure_file(include/version.h.in ${CMAKE_SOURCE_DIR}/include/version.h.in)
-#configure_file("${CMAKE_SOURCE_DIR}/include/version.h.in" "${CMAKE_BINARY_DIR}/include/version.h" @ONLY)
 set(LAYERSET_LIBS
     LayerSetConfig
     LayerSetCore
@@ -135,7 +133,9 @@ if(BUILD_NUKE)
     add_subdirectory(src/nuke)
 endif()
 
-add_subdirectory(documentation)
+if(BUILD_DOCS)
+    add_subdirectory(documentation)
+endif()
 
 # Section for packaging the project
 
@@ -161,6 +161,6 @@ endif()
 add_custom_target(package
     COMMENT "creating package for ${PROJECT_PACKAGE_NAME}"
     COMMAND ${CMAKE_COMMAND} -E tar ${PROJECT_PACKAGE_COMMAND}
-    DEPENDS ${CMAKE_INSTALL_PREFIX} # make sure the install direcotry exists
+    DEPENDS ${CMAKE_INSTALL_PREFIX} # make sure the install directory exists
+    DEPENDS documentation
 )
-list (APPEND EXCLUDE "CMakeLists.txt$" ".*" "@eaDir" "*.pyc") # default excludes
