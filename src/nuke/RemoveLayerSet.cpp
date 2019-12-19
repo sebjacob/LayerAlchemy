@@ -1,15 +1,16 @@
-#include "DDImage/Row.h"
-#include "DDImage/Iop.h"
-#include "DDImage/Knobs.h"
+#include <DDImage/Row.h>
+#include <DDImage/Iop.h>
+#include <DDImage/Knobs.h>
 
 #include "LayerSet.h"
 #include "LayerSetKnob.h"
 
-using namespace DD::Image;
-using namespace LayerSet;
+namespace RemoveLayerSet {
 
-static const char* const CLASS = "RemoveLayerSet";
+using namespace DD::Image;
+
 static const char* const HELP = "Remove of keep channels using LayerSets";
+
 static const char* const enumOperation[] = {
     "remove", "keep", 0
 };
@@ -17,7 +18,7 @@ static const char* const enumOperation[] = {
 class RemoveLayerSet : public Iop {
 
 private:
-    LayerSetKnobData m_lsKnobData;
+    LayerAlchemy::LayerSetKnob::LayerSetKnobData m_lsKnobData;
     int m_operation; // 0 = remove, 1 = keep
     bool m_keepRGBA;
 
@@ -33,13 +34,18 @@ public:
     const char* node_help() const {return HELP;}
     RemoveLayerSet(Node* node);
     ~RemoveLayerSet();
+    // channel set that contains all channels that are modified by the node
+    ChannelSet activeChannelSet() const {return ChannelSet(m_lsKnobData.m_selectedChannels);}
+
 };
-RemoveLayerSet::RemoveLayerSet(Node* node) : Iop(node) {
+RemoveLayerSet::RemoveLayerSet(Node* node) : Iop(node)
+{
     m_operation = 1;
     m_keepRGBA = true;
 }
 
-static Iop* build(Node* node) {
+static Iop* build(Node* node)
+{
     return new RemoveLayerSet(node);
 }
 
@@ -51,40 +57,48 @@ const Iop::Description RemoveLayerSet::description(
     build
 );
 
-void RemoveLayerSet::_validate(bool for_real) {
+void RemoveLayerSet::_validate(bool for_real)
+{
     copy_info(); // this copies the input info to the output
     ChannelSet inChannels = info_.channels();
-    if (validateLayerSetKnobUpdate(this, m_lsKnobData, layerCollection, inChannels)) {
-        updateLayerSetKnob(this, m_lsKnobData, layerCollection, inChannels);
+    if (validateLayerSetKnobUpdate(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels)) {
+        updateLayerSetKnob(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels);
     }
-
+    
+    ChannelSet activeChannels = activeChannelSet();
+    
     if (m_operation) { // keep
-        info_.channels() &= m_lsKnobData.m_selectedChannels;
+        info_.channels() &= activeChannels;
         set_out_channels(info_.channels());
     } else { //remove
-        info_.turn_off(m_lsKnobData.m_selectedChannels);
-        set_out_channels(m_lsKnobData.m_selectedChannels);
+        info_.turn_off(activeChannels);
+        set_out_channels(activeChannels);
     }
     if (m_keepRGBA) {
         info_.turn_on(Mask_RGBA);
     }
 }
 
-void RemoveLayerSet::_request(int x, int y, int r, int t, ChannelMask c1, int count) {
+void RemoveLayerSet::_request(int x, int y, int r, int t, ChannelMask c1, int count)
+{
     input0().request(x, y, r, t, c1, count);
 }
 
-void RemoveLayerSet::engine(int y, int x, int r, ChannelMask c1, Row& out_row) {
+void RemoveLayerSet::engine(int y, int x, int r, ChannelMask c1, Row& out_row)
+{
     out_row.get(input0(), y, x, r, c1);
     return;
 }
 
-void RemoveLayerSet::knobs(Knob_Callback f) {
-    Knob* k = LayerSet::LayerSetKnob(f, m_lsKnobData);
-    createDocumentationButton(f);
+void RemoveLayerSet::knobs(Knob_Callback f)
+{
+    LayerAlchemy::LayerSetKnob::LayerSetKnob(f, m_lsKnobData);
+    LayerAlchemy::Knobs::createDocumentationButton(f);
+    LayerAlchemy::Knobs::createVersionTextKnob(f);
     Divider(f, 0); // separates layer set knobs from the rest
 
     Enumeration_knob(f, &m_operation, enumOperation, "operation");
     Bool_knob(f, &m_keepRGBA, "keep_rgba", "keep rgba");
     Tooltip(f, "if enabled, RGBA is always output");
 }
+} // End namespace RemoveLayerSet

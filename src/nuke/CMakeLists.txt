@@ -15,12 +15,6 @@ if(APPLE)
     set(CMAKE_MACOSX_RPATH 1)
 endif()
 
-include_directories(
-    ${NUKE_ROOT}/include
-    ${CMAKE_SOURCE_DIR}/include/nuke/
-    ${CMAKE_SOURCE_DIR}/src/nuke/
-)
-
 find_library(LIB_DDIMAGE DDImage ${NUKE_ROOT})
 
 # get the Nuke version info
@@ -33,69 +27,66 @@ string(REGEX MATCH "#define kDDImageVersionReleaseNum ([0-9]*)" _ ${ver})
 set(NUKE_RELEASE_NUM ${CMAKE_MATCH_1})
 
 set(NUKE_RELEASE ${NUKE_MAJOR}.${NUKE_MINOR} CACHE STRING "" FORCE)
-set(NUKE_PLUGIN_DESTINATION nuke/plugins/${NUKE_RELEASE})
 
-set(NUKE_LAYERSET_LIBS
-    LayerSet
-    LayerSetKnob
+include_directories(
+    ${NUKE_ROOT}/include
+    ${CMAKE_SOURCE_DIR}/include/nuke/
+    ${CMAKE_SOURCE_DIR}/src/nuke/
 )
+set(NUKE_PLUGIN_DESTINATION nuke/plugins/${NUKE_RELEASE})
+set(PROJECT_NUKE_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include/nuke)
+set(PROJECT_NUKE_SRC_DIR ${CMAKE_SOURCE_DIR}/src/nuke)
 
 # layer_alchemy libs
-foreach(LIB ${NUKE_LAYERSET_LIBS})
+add_library(LayerSet STATIC ${PROJECT_NUKE_SRC_DIR}/LayerSet.cpp)
+target_link_libraries(LayerSet ${LAYERSET_LIBS} ${LIB_DDIMAGE})
+set_target_properties(LayerSet
+    PROPERTIES PREFIX ""
+    PUBLIC_HEADER ${PROJECT_NUKE_INCLUDE_DIR}/LayerSet.h)
+list(APPEND NUKE_LAYERSET_LIBS LayerSet)
 
-    add_library(${LIB}
-        STATIC
-        ${CMAKE_SOURCE_DIR}/src/nuke/${LIB}.cpp
-    )
-    target_link_libraries(
-        ${LIB}
-        ${LAYERSET_LIBS}
-        ${LIB_DDIMAGE}
-    )
-    set_target_properties(${LIB} PROPERTIES
-        PREFIX ""
-    )
-
-    install(
-        TARGETS ${LIB}
-        DESTINATION ${NUKE_PLUGIN_DESTINATION}
-    )
-endforeach()
+add_library(LayerSetKnob STATIC ${PROJECT_NUKE_SRC_DIR}/LayerSetKnob.cpp)
+target_link_libraries(LayerSetKnob LayerSet ${LAYERSET_LIBS} ${LIB_DDIMAGE})
+set_target_properties(LayerSetKnob
+    PROPERTIES PREFIX ""
+    PUBLIC_HEADER ${PROJECT_NUKE_INCLUDE_DIR}/LayerSetKnob.h)
+list(APPEND NUKE_LAYERSET_LIBS LayerSetKnob)
 
 # plugins
 
-set(NUKE_PLUGINS 
-    RemoveLayerSet
-    MultiplyLayerSet
-    GradeLayerSet
-    FlattenLayerSet
-    GradeBeauty
-    GradeBeautyLayerSet
-)
+add_library(RemoveLayerSet SHARED ${PROJECT_NUKE_SRC_DIR}/RemoveLayerSet.cpp)
+list(APPEND NUKE_PLUGINS RemoveLayerSet)
+
+add_library(MultiplyLayerSet SHARED ${PROJECT_NUKE_SRC_DIR}/MultiplyLayerSet.cpp)
+list(APPEND NUKE_PLUGINS MultiplyLayerSet)
+
+add_library(GradeLayerSet SHARED ${PROJECT_NUKE_SRC_DIR}/GradeLayerSet.cpp)
+list(APPEND NUKE_PLUGINS GradeLayerSet)
+
+add_library(FlattenLayerSet SHARED ${PROJECT_NUKE_SRC_DIR}/FlattenLayerSet.cpp)
+list(APPEND NUKE_PLUGINS FlattenLayerSet)
+
+add_library(GradeBeauty SHARED ${PROJECT_NUKE_SRC_DIR}/GradeBeauty.cpp)
+list(APPEND NUKE_PLUGINS GradeBeauty)
+
+add_library(GradeBeautyLayerSet SHARED ${PROJECT_NUKE_SRC_DIR}/GradeBeautyLayerSet.cpp)
+list(APPEND NUKE_PLUGINS GradeBeautyLayerSet)
 
 foreach(PLUGIN ${NUKE_PLUGINS})
-
-    add_library(${PLUGIN} SHARED
-        ${CMAKE_SOURCE_DIR}/src/nuke/${PLUGIN}.cpp
-    )
-
-    target_link_libraries(${PLUGIN}
-        ${LAYERSET_LIBS}
-        ${NUKE_LAYERSET_LIBS}
-        ${LIB_DDIMAGE}
-    )
-
-    set_target_properties(${PLUGIN} PROPERTIES
-        PREFIX ""
-        COMPILE_FLAGS ""
-        LINK_FLAGS ""
-    )
-
-    install(
-        TARGETS ${PLUGIN}
-        DESTINATION ${NUKE_PLUGIN_DESTINATION}
-    )
+    set_target_properties(${PLUGIN} PROPERTIES PREFIX "")
+    target_link_libraries(${PLUGIN} ${LAYERSET_LIBS} ${NUKE_LAYERSET_LIBS} ${LIB_DDIMAGE})
 endforeach()
+
+install(
+    TARGETS ${NUKE_PLUGINS}
+    DESTINATION ${NUKE_PLUGIN_DESTINATION}
+)
+
+install(
+    TARGETS ${NUKE_LAYERSET_LIBS}
+    DESTINATION ${NUKE_PLUGIN_DESTINATION}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_PREFIX}/include/nuke
+)
 
 # # copy menu and icons and configs over to the build Dir
 install(

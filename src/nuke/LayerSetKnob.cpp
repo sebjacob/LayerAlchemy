@@ -1,16 +1,20 @@
 #include "LayerSetKnob.h"
 
-namespace LayerSet {
+namespace LayerAlchemy {
+namespace LayerSetKnob {
 
-LayerSetKnobData::LayerSetKnobData() {
+LayerSetKnobData::LayerSetKnobData()
+{
    //printf("created LayerSetKnobData %p\n", (void*) this);
 }
 
-LayerSetKnobData::~LayerSetKnobData() {
+LayerSetKnobData::~LayerSetKnobData()
+{
    //printf("destroyed LayerSetKnobData %p\n", (void*) this);
 }
 
-DD::Image::Knob* LayerSetKnob(DD::Image::Knob_Callback& f, LayerSetKnobData& pLayerSetKnobData) {
+DD::Image::Knob* LayerSetKnob(DD::Image::Knob_Callback& f, LayerSetKnobData& pLayerSetKnobData)
+{
     DD::Image::Knob* layerSetKnob = DD::Image::Enumeration_knob(
         f, &pLayerSetKnobData.selectedLayerSetIndex, pLayerSetKnobData.items, "layer_set", "layer set");
     Tooltip(f, "This selects a specific layer set for processing in this node");
@@ -21,17 +25,22 @@ DD::Image::Knob* LayerSetKnob(DD::Image::Knob_Callback& f, LayerSetKnobData& pLa
     return layerSetKnob;
 }
 
-string getLayerSetKnobEnumString(DD::Image::Op* t_op) {
+string getLayerSetKnobEnumString(DD::Image::Op* t_op)
+{
     return t_op->knob(LAYER_SET_KNOB_NAME)->enumerationKnob()->getSelectedItemString();
 }
-void populateLayerSetKnobEnum(DD::Image::Op* t_op, std::vector<string>& items) {
+
+void populateLayerSetKnobEnum(DD::Image::Op* t_op, std::vector<string>& items)
+{
     t_op->knob(LAYER_SET_KNOB_NAME)->enumerationKnob()->menu(items);
 }
-void _updateLayerSetKnobEnum(DD::Image::Op* t_op, LayerSetKnobData& layerSetKnobData, ChannelSetMapType& channelSetLayerMap, const DD::Image::ChannelSet& inChannels) {
+
+void _updateLayerSetKnobEnum(DD::Image::Op* t_op, LayerSetKnobData& layerSetKnobData, ChannelSetMapType& channelSetLayerMap, const DD::Image::ChannelSet& inChannels)
+{
     DD::Image::Knob* layerSetKnob = t_op->knob(LAYER_SET_KNOB_NAME);
     DD::Image::Enumeration_KnobI* layerSetEnumKnob = layerSetKnob->enumerationKnob();
     int selectedIndex = layerSetEnumKnob->getSelectedItemIndex();
-    StrVecType newCategories = getCategories(channelSetLayerMap);
+    StrVecType newCategories = LayerAlchemy::LayerSet::getCategories(channelSetLayerMap);
     StrVecType currentCategories = layerSetEnumKnob->menu();
     string layerSetName = layerSetEnumKnob->getSelectedItemString();
     
@@ -41,7 +50,6 @@ void _updateLayerSetKnobEnum(DD::Image::Op* t_op, LayerSetKnobData& layerSetKnob
         StrVecType blank = {""};
         layerSetEnumKnob->menu(blank);
         layerSetKnob->set_value(0);
-        layerSetKnobData.m_selectedChannels = DD::Image::ChannelSet(DD::Image::Chan_Black);
         return;
     } else if (indexCurrentItem < categoryAmount) {
         selectedIndex = indexCurrentItem;
@@ -57,20 +65,20 @@ void _updateLayerSetKnobEnum(DD::Image::Op* t_op, LayerSetKnobData& layerSetKnob
     layerSetKnobData.m_allChannels = inChannels;
     //printf("_updateLayerSetKnobEnum categorized %s\n", layerSetName.c_str());
 }
-void updateLayerSetKnob(DD::Image::Op* t_op, LayerSetKnobData& layerSetKnobData, LayerCollection& collection, DD::Image::ChannelSet& inChannels) {
-    if (!inChannels.empty()) {
-        ChannelSetMapType channelSetLayerMap = categorizeChannelSet(collection, inChannels);
+void updateLayerSetKnob(DD::Image::Op* t_op, LayerSetKnobData& layerSetKnobData, LayerCollection& collection, DD::Image::ChannelSet& inChannels)
+{
+    if (!inChannels.empty())
+    {
+        ChannelSetMapType channelSetLayerMap = LayerAlchemy::LayerSet::categorizeChannelSet(collection, inChannels);
         _updateLayerSetKnobEnum(t_op, layerSetKnobData, channelSetLayerMap, inChannels);
-    } else {
-        layerSetKnobData.m_selectedChannels = DD::Image::ChannelSet(DD::Image::Chan_Black);
     }
 }
-void updateLayerSetKnob(DD::Image::Op* t_op, LayerSetKnobData& layerSetKnobData, LayerCollection& collection, DD::Image::ChannelSet& inChannels, const CategorizeFilter& categorizeFilter) {
-    if (!inChannels.empty()) {
-        ChannelSetMapType channelSetLayerMap = categorizeChannelSet(collection, inChannels, categorizeFilter);
+void updateLayerSetKnob(DD::Image::Op* t_op, LayerSetKnobData& layerSetKnobData, LayerCollection& collection, DD::Image::ChannelSet& inChannels, const CategorizeFilter& categorizeFilter)
+{
+    if (!inChannels.empty())
+    {
+        ChannelSetMapType channelSetLayerMap = LayerAlchemy::LayerSet::categorizeChannelSet(collection, inChannels, categorizeFilter);
         _updateLayerSetKnobEnum(t_op, layerSetKnobData, channelSetLayerMap, inChannels);
-    } else {
-        layerSetKnobData.m_selectedChannels = DD::Image::ChannelSet(DD::Image::Chan_Black);
     }
 }
 
@@ -128,7 +136,8 @@ bool _categorizedValidateLayerSetKnobUpdate(DD::Image::Op* t_op, const LayerMap&
 
 }
 
-bool validateLayerSetKnobUpdate(DD::Image::Op* t_op, const LayerSetKnobData& layerSetKnobData, LayerCollection& layerCollection, const DD::Image::ChannelSet& inChannels) {
+bool validateLayerSetKnobUpdate(DD::Image::Op* t_op, const LayerSetKnobData& layerSetKnobData, LayerCollection& layerCollection, const DD::Image::ChannelSet& inChannels)
+{
     string currentLayerSetName = getLayerSetKnobEnumString(t_op);
     if (!_basicValidateLayerSetKnobUpdate(t_op, layerSetKnobData, inChannels)) {
         return false;
@@ -138,7 +147,8 @@ bool validateLayerSetKnobUpdate(DD::Image::Op* t_op, const LayerSetKnobData& lay
     return _categorizedValidateLayerSetKnobUpdate(t_op, categorized, currentLayerSetName);
 }
 
-bool validateLayerSetKnobUpdate(DD::Image::Op* t_op, const LayerSetKnobData& layerSetKnobData, LayerCollection& layerCollection, const DD::Image::ChannelSet& inChannels, const CategorizeFilter& categorizeFilter) {
+bool validateLayerSetKnobUpdate(DD::Image::Op* t_op, const LayerSetKnobData& layerSetKnobData, LayerCollection& layerCollection, const DD::Image::ChannelSet& inChannels, const CategorizeFilter& categorizeFilter)
+{
     string currentLayerSetName = getLayerSetKnobEnumString(t_op);
     if (!_basicValidateLayerSetKnobUpdate(t_op, layerSetKnobData, inChannels)) {
         return false;
@@ -147,4 +157,5 @@ bool validateLayerSetKnobUpdate(DD::Image::Op* t_op, const LayerSetKnobData& lay
     LayerMap categorized = layerCollection.categorizeLayers(inLayers, categorizeType::pub, categorizeFilter);
     return _categorizedValidateLayerSetKnobUpdate(t_op, categorized, currentLayerSetName);
 }
-}; //  LayerSet
+} //  LayerSetKnob
+} //  LayerAlchemy

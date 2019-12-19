@@ -11,11 +11,10 @@
 
 //In the channels config files, these values will be used for topology functions
 static const string TOPOLOGY_KEY_LEXICAL = "topology";
-static const string TOPOLOGY_KEY_EXR = "exr_topology";
 
 // simple function to load yaml or json from a file path to a YAML::Node object
 YAML::Node _loadConfigFromPath(const string&);
 // converts YAML::Node  data to a map of strings (StrMapType)
-StrMapType _categoryMapFromConfig(YAML::Node&);
+StrMapType _categoryMapFromConfig(const YAML::Node&);
 // simple wrapper function to load a yaml or json file to a map of strings (StrMapType)
 StrMapType loadConfigToMap(const string&);
