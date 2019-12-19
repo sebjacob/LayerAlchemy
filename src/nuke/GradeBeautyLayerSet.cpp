@@ -1,12 +1,12 @@
-#include <memory>
 #include "math.h"
 
 #include <DDImage/Row.h>
-#include <DDImage/PixelIop.h>
 #include <DDImage/NukeWrapper.h>
 
 #include "LayerSet.h"
 #include "LayerSetKnob.h"
+
+namespace GradeBeautyLayerSet {
 
 static const char* const HELP =
         "Provides artist friendly controls to manipulate multichannel cg render passes\n\n"
@@ -30,6 +30,17 @@ static bool LINUX = false;
 LINUX = true;
 #endif
 
+float validateGammaValue(const float& gammaValue) {
+    if (LINUX) {
+        if (gammaValue < 0.008f) {
+            return 0.0f;
+        } else if (gammaValue > 125.0f) {
+            return 125.0f;
+        }
+    }
+    return gammaValue;
+}
+
 enum operationModes {
     ADD = 0, COPY
 };
@@ -40,7 +51,6 @@ static const char* const operationNames[] = {
 
 
 using namespace DD::Image;
-using namespace LayerSet;
 
 static const StrVecType all = {
     "beauty_direct_indirect", "beauty_shading_global", "light_group", "beauty_shading"
@@ -50,18 +60,18 @@ static const CategorizeFilter CategorizeFilterAllBeauty(all, CategorizeFilter::m
 class GradeBeautyLayerSet : public PixelIop {
 
 private:
-    float blackpoint[4]{0.0f, 0.0f, 0.0f, 0.0f};
-    float whitepoint[4]{1.0f, 1.0f, 1.0f, 1.0f};
-    float lift[4]{0.0f, 0.0f, 0.0f, 0.0f};
-    float gain[4]{1.0f, 1.0f, 1.0f, 1.0f};
-    float offset[4]{0.0f, 0.0f, 0.0f, 0.0f};
-    float multiply[4]{1.0f, 1.0f, 1.0f, 1.0f};
-    float gamma[4]{1.0f, 1.0f, 1.0f, 1.0f};
+    float blackpoint[3]{0.0f, 0.0f, 0.0f};
+    float whitepoint[3]{1.0f, 1.0f, 1.0f};
+    float lift[3]{0.0f, 0.0f, 0.0f};
+    float gain[3]{1.0f, 1.0f, 1.0f};
+    float offset[3]{0.0f, 0.0f, 0.0f};
+    float multiply[3]{1.0f, 1.0f, 1.0f};
+    float gamma[3]{1.0f, 1.0f, 1.0f};
     bool reverse{false};
     bool clampBlack{true};
     bool clampWhite{false};
     int m_operation{operationModes::ADD};
-    LayerSetKnobData m_lsKnobData;
+    LayerAlchemy::LayerSetKnob::LayerSetKnobData m_lsKnobData;
     ChannelSet m_targetLayer{Mask_RGB};
     // intermediate grade algorithm storage
     float A[3]{0.0f, 0.0f, 0.0f};
@@ -79,21 +89,26 @@ public:
     const char* node_help() const {return HELP;}
     static const Iop::Description description;
 
-    float validateGammaValue(const float&);
     // This function calculates and stores the grade algorithm's intermediate calculations
     void precomputeValues();
-    // channel set that contains all channels that are modified by the node
-    ChannelSet activeChannelSet() const {return ChannelSet(m_targetLayer + m_lsKnobData.m_selectedChannels);}
-
-    GradeBeautyLayerSet(Node* node) : PixelIop(node) { //printf("created GradeBeautyLayerSet %p\n", (void*) this);
-        precomputeValues();
-    }
+    GradeBeautyLayerSet(Node* node);
     ~GradeBeautyLayerSet();
+    // channel set that contains all channels that are modified by the node
+    ChannelSet activeChannelSet() const;
+    // pixel engine function when anything but the target layer is requested to render
+    void channelPixelEngine(const Row&, int, int, int, ChannelSet&, Row&);
+    // pixel engine functon when the target layer is requested to render
+    void beautyPixelEngine(const Row&, int y, int x, int r, ChannelSet&, Row&);
 };
 
+GradeBeautyLayerSet::GradeBeautyLayerSet(Node* node) : PixelIop(node)
+{
+    precomputeValues();
+}
 
-static Op* build(Node* node) {
-    return (new NukeWrapper(new GradeBeautyLayerSet(node)))->noChannels();
+static Op* build(Node* node)
+{
+    return (new NukeWrapper(new GradeBeautyLayerSet(node)))->noChannels()->mixLuminance();
 }
 
 GradeBeautyLayerSet::~GradeBeautyLayerSet() {}
@@ -103,6 +118,27 @@ const Iop::Description GradeBeautyLayerSet::description(
     "LayerAlchemy/GradeBeautyLayerSet",
     build
 );
+
+ChannelSet GradeBeautyLayerSet::activeChannelSet() const
+{
+    ChannelSet outChans;
+    std::vector<unsigned> targetIndexes;
+    foreach(channel, m_targetLayer)
+    {
+        targetIndexes.emplace_back(colourIndex(channel));
+    }
+
+    foreach(channel, ChannelSet(m_targetLayer + m_lsKnobData.m_selectedChannels))
+    {
+        unsigned chanIdx = colourIndex(channel);
+        bool relevant = find(begin(targetIndexes), end(targetIndexes), chanIdx) != targetIndexes.end();
+        if (chanIdx <= 2 && relevant)
+        {
+            outChans += channel;
+        }
+    }
+    return outChans;
+}
 
 void GradeBeautyLayerSet::in_channels(int input_number, ChannelSet& mask) const {
     mask += activeChannelSet();
@@ -134,59 +170,39 @@ void GradeBeautyLayerSet::_validate(bool for_real) {
     info_.black_outside(!changeZero);
     copy_info(); // this copies the input info to the output
     ChannelSet inChannels = info_.channels();
-    if (validateLayerSetKnobUpdate(this, m_lsKnobData, layerCollection, inChannels, CategorizeFilterAllBeauty)) {
-        updateLayerSetKnob(this, m_lsKnobData, layerCollection, inChannels, CategorizeFilterAllBeauty);
+    LayerAlchemy::Utilities::validateTargetLayerColorIndex(this, m_targetLayer, 0, 2);
+
+    if (validateLayerSetKnobUpdate(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels, CategorizeFilterAllBeauty)) {
+        updateLayerSetKnob(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels, CategorizeFilterAllBeauty);
     }
     set_out_channels(activeChannelSet());
 }
-
-void GradeBeautyLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelMask channels, Row& out) {
-    ChannelSet processChans = activeChannelSet();
-    map<int, float*> targetRowPtrIdxMap;
-
-    Row aRow(x, r); // store the initial target layer
-    aRow.copy(in, processChans, x, r);
-
-    foreach(z, m_targetLayer) {
-        int chanIdx = colourIndex(z);
-        targetRowPtrIdxMap[chanIdx] = aRow.writableConstant(0.0f, z) + x;
-        if (m_operation == operationModes::ADD)
-        {
-            aRow.copy(in, z, x, r);
-        }
+void GradeBeautyLayerSet::channelPixelEngine(const Row& in, int y, int x, int r, ChannelSet& channels, Row& aRow)
+{
+    map<Channel, float*> aovPtrIdxMap;
+    foreach(channel, channels)
+    {
+        LayerAlchemy::Utilities::hard_copy(in, x, r, channel, aRow);
+        aovPtrIdxMap[channel] = aRow.writable(channel);
     }
 
-    foreach(channel, m_lsKnobData.m_selectedChannels) {
-        int chanIdx = colourIndex(channel);
-        if (
-        (targetRowPtrIdxMap.find(chanIdx) == targetRowPtrIdxMap.end())
-        || chanIdx > 2
-        || aRow.is_zero(channel)
-        || m_targetLayer.contains(channel)) {
-            continue;
-        }
-        float* btyChanPtr = targetRowPtrIdxMap[chanIdx];
-//        const float* pArow = aRow[channel] + x;
-//        const float* pArowEnd = pArow + (r - x);
-//        float* outPtr = aRow.writable(channel) + x;
-        float* pArow = aRow.writable(channel) + x;
-        float* pArowEnd = pArow + (r - x);
+    foreach(channel, channels) {
+        unsigned chanIdx = colourIndex(channel);
+        const float* inAovValue = in[channel];
+        float* outAovValue = aovPtrIdxMap[channel];
 
-        float* ptrA = &A[chanIdx];
-        float* ptrB = &B[chanIdx];
-        float* ptrG = &G[chanIdx];
+        float _A = A[chanIdx];
+        float _B = B[chanIdx];
+        float _G = G[chanIdx];
 
-        for (float* i = pArow; i != pArowEnd; i++) {
-            float outPixel = *i;
-            float btyPixelValue = *btyChanPtr;
-
-            if (m_operation == operationModes::ADD) {
-                btyPixelValue -= *i;
-            }
+        for (int X = x; X < r; X++)
+        {
+            float outPixel = inAovValue[X];
 
             if (!reverse) {
-                if (*ptrA != 1.0f || *ptrB) {
-                    outPixel = *i * *ptrA + *ptrB;
+                if (_A != 1.0f || _B) {
+                    outPixel *= _A;
+                    outPixel += _B;
                     }
                 if (clampWhite || clampBlack) {
                     if (outPixel < 0.0f && clampBlack) { // clamp black
@@ -196,14 +212,14 @@ void GradeBeautyLayerSet::pixel_engine(const Row& in, int y, int x, int r, Chann
                         outPixel = 1.0f;
                     }
                 }
-                if (*ptrG <= 0) {
+                if (_G <= 0) {
                     if (outPixel < 1.0f) {
                         outPixel = 0.0f;
                     } else if (outPixel > 1.0f) {
                         outPixel = INFINITY;
                     }
-                } else if (*ptrG != 1.0f) {
-                    float power = 1.0f / *ptrG;
+                } else if (_G != 1.0f) {
+                    float power = 1.0f / _G;
                     if (LINUX & (outPixel <= 1e-6f && power > 1.0f)) {
                         outPixel = 0.0f;
                     } else if (outPixel < 1) {
@@ -214,22 +230,22 @@ void GradeBeautyLayerSet::pixel_engine(const Row& in, int y, int x, int r, Chann
                 }
             }
             if (reverse) { // Reverse gamma:
-                if (*ptrG <= 0) {
+                if (_G <= 0) {
                     outPixel = outPixel > 0.0f ? 1.0f : 0.0f;
                 }
-                if (*ptrG != 1.0f) {
-                    if (LINUX & (outPixel <= 1e-6f && *ptrG > 1.0f)) {
+                if (_G != 1.0f) {
+                    if (LINUX & (outPixel <= 1e-6f && _G > 1.0f)) {
                         outPixel = 0.0f;
                     } else if (outPixel < 1.0f) {
-                        outPixel = powf(outPixel, *ptrG);
+                        outPixel = powf(outPixel, _G);
                     } else {
-                        outPixel = 1.0f + (outPixel - 1.0f) * *ptrG;
+                        outPixel = 1.0f + (outPixel - 1.0f) * _G;
                     }
                 }
                 // Reverse the linear part:
-                if (*ptrA != 1.0f || *ptrB) {
-                    float b = *ptrB;
-                    float a = *ptrA;
+                if (_A != 1.0f || _B) {
+                    float b = _B;
+                    float a = _A;
                     if (a) {
                         a = 1 / a;
                     } else {
@@ -239,30 +255,122 @@ void GradeBeautyLayerSet::pixel_engine(const Row& in, int y, int x, int r, Chann
                     outPixel = (outPixel * a) + b;
                 }
             }
-            // apply to pixels
-            btyPixelValue += outPixel;
-            if (clampWhite || clampBlack) { // clamps
-                if (btyPixelValue < 0.0f && clampBlack) { // clamp black
-                    btyPixelValue = outPixel = 0.0f;
-
-                } else if (*btyChanPtr > 1.0f && clampWhite) { // clamp white
-                    btyPixelValue = outPixel = 1.0f;
+            // clamp
+            if (clampWhite || clampBlack) {
+                if (outPixel < 0.0f && clampBlack)
+                {
+                    outPixel = 0.0f;
+                }
+                else if (outPixel > 1.0f && clampWhite)
+                {
+                    outPixel = 1.0f;
                 }
             }
-            *btyChanPtr = btyPixelValue;
-            *i = outPixel;
-            pArow++;
-            btyChanPtr++;
+            outAovValue[X] = outPixel;
         }
     }
-    out.copy(aRow, processChans, x, r);
+}
+void GradeBeautyLayerSet::beautyPixelEngine(const Row& in, int y, int x, int r, ChannelSet& channels, Row& aRow)
+{
+    ChannelSet bty = m_targetLayer.intersection(channels);
+    ChannelSet aovs = m_lsKnobData.m_selectedChannels.intersection(channels);
+
+    map<unsigned, float*> btyPtrIdxMap;
+    map<Channel, float*> aovPtrIdxMap;
+    map<Channel, const float*> aovInPtrIdxMap;
+
+    foreach(channel, bty) {
+        unsigned chanIdx = colourIndex(channel);
+        float* rowBtyChan;
+        if (m_operation == operationModes::ADD)
+        {
+            LayerAlchemy::Utilities::hard_copy(in, x, r, channel, aRow);
+            rowBtyChan = aRow.writable(channel);
+        } 
+        else
+        {
+            rowBtyChan = aRow.writableConstant(0.0f, channel);
+        }
+        btyPtrIdxMap[chanIdx] = rowBtyChan;
+
+    }
+    foreach(channel, aovs) {
+        aovPtrIdxMap[channel] = aRow.writable(channel);
+        aovInPtrIdxMap[channel] = in[channel];
+    }
+
+    for (const auto& kvp : btyPtrIdxMap)
+    {
+        unsigned btyChanIdx = kvp.first;
+        float* aRowBty = kvp.second;
+
+        foreach(aov, aovs)
+        {
+            unsigned aovChanIdx = colourIndex(aov);
+            if (btyChanIdx != aovChanIdx)
+            {
+                continue;
+            }
+
+            float* aRowBty = btyPtrIdxMap[aovChanIdx];
+            float* aRowAov = aovPtrIdxMap[aov];
+            const float* inAov = aovInPtrIdxMap[aov];
+            for (int X = x; X < r; X++)
+            {
+                float aovPixel = aRowAov[X];
+                float btyPixel = aRowBty[X];
+                if (m_operation == operationModes::ADD)
+                {
+                    float aovInPixel = inAov[X];
+                    btyPixel -= aovInPixel;
+                }
+                float resultPixel = btyPixel + aovPixel;
+                aRowBty[X] = btyPixel + aovPixel;
+            }
+        }
+        // clamp
+        if (clampWhite || clampBlack) {
+            for (int X = x; X < r; X++)
+            {
+                float btyPixel = aRowBty[X];
+
+                if (btyPixel < 0.0f && clampBlack)
+                {
+                    btyPixel = 0.0f;
+                }
+                else if (btyPixel > 1.0f && clampWhite)
+                {
+                    btyPixel = 1.0f;
+                }
+                aRowBty[X] = btyPixel;
+            }
+        }
+    }
+}
+
+void GradeBeautyLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelMask channels, Row& out) {
+    ChannelSet inChannels = ChannelSet(channels);
+    ChannelSet activeChannels = activeChannelSet();
+    Row aRow(x, r);
+    bool isTargetLayer = m_targetLayer.intersection(inChannels).size() == m_targetLayer.size();
+
+    if (isTargetLayer)
+    {
+        channelPixelEngine(in, y, x, r, activeChannels, aRow);
+        beautyPixelEngine(in, y, x, r, activeChannels, aRow);
+    }
+    else
+    {
+        channelPixelEngine(in, y, x, r, inChannels, aRow);
+    }
+    LayerAlchemy::Utilities::hard_copy(aRow, x, r, inChannels, out);
 }
 
 void GradeBeautyLayerSet::knobs(Knob_Callback f) {
-    LayerSet::LayerSetKnob(f, m_lsKnobData);
-    createDocumentationButton(f);
-    createColorKnobResetButton(f);
-
+    LayerAlchemy::LayerSetKnob::LayerSetKnob(f, m_lsKnobData);
+    LayerAlchemy::Knobs::createDocumentationButton(f);
+    LayerAlchemy::Knobs::createColorKnobResetButton(f);
+    LayerAlchemy::Knobs::createVersionTextKnob(f);
     Divider(f, 0); // separates layer set knobs from the rest
 
     Input_ChannelMask_knob(f, &m_targetLayer, 0, "target layer");
@@ -281,19 +389,19 @@ void GradeBeautyLayerSet::knobs(Knob_Callback f) {
 
     Divider(f, 0); // separates layer set knobs from the rest
 
-    AColor_knob(f, blackpoint, IRange(-1, 1), "blackpoint");
+    Color_knob(f, blackpoint, IRange(-1, 1), "blackpoint");
     Tooltip(f, "This color is turned into black");
-    AColor_knob(f, whitepoint, IRange(0, 4), "whitepoint");
+    Color_knob(f, whitepoint, IRange(0, 4), "whitepoint");
     Tooltip(f, "This color is turned into white");
-    AColor_knob(f, lift, IRange(-1, 1), "lift", "lift");
+    Color_knob(f, lift, IRange(-1, 1), "lift", "lift");
     Tooltip(f, "Black is turned into this color");
-    AColor_knob(f, gain, IRange(0, 4), "gain", "gain");
+    Color_knob(f, gain, IRange(0, 4), "gain", "gain");
     Tooltip(f, "White is turned into this color");
-    AColor_knob(f, multiply, IRange(0, 4), "multiply");
+    Color_knob(f, multiply, IRange(0, 4), "multiply");
     Tooltip(f, "Constant to multiply result by");
-    AColor_knob(f, offset, IRange(-1, 1), "offset", "offset");
+    Color_knob(f, offset, IRange(-1, 1), "offset", "offset");
     Tooltip(f, "Constant to offset to result (raises both black & white, unlike lift)");
-    AColor_knob(f, gamma, IRange(.2, 5), "gamma");
+    Color_knob(f, gamma, IRange(.2, 5), "gamma");
     Tooltip(f, "Gamma correction applied to final result");
     Newline(f, "  ");
     Bool_knob(f, &reverse, "reverse");
@@ -309,14 +417,4 @@ void GradeBeautyLayerSet::knobs(Knob_Callback f) {
 int GradeBeautyLayerSet::knob_changed(Knob* k) {
     return 1;
 }
-
-float GradeBeautyLayerSet::validateGammaValue(const float& gammaValue) {
-    if (LINUX) {
-        if (gammaValue < 0.008f) {
-            return 0.0f;
-        } else if (gammaValue > 125.0f) {
-            return 125.0f;
-        }
-    }
-    return gammaValue;
-}
+} // End namespace GradeBeautyLayerSet

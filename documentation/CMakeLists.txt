@@ -1,18 +1,23 @@
-find_package(PythonInterp)
+find_program(PYTHON "python")
 find_program(MKDOCS_ABSPATH NAMES mkdocs)
 include(GNUInstallDirs)
 
-add_custom_target(documentation
-    COMMAND ${MKDOCS_ABSPATH} build -c -s -v -q --site-dir ${CMAKE_CURRENT_BINARY_DIR}
+get_filename_component(DOCUMENTATION_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/documentation" ABSOLUTE)
+
+add_custom_target(documentation ALL
+    COMMAND ${MKDOCS_ABSPATH} build -c -s -v -q --site-dir ${DOCUMENTATION_BUILD_DIR}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Generating mkdocs documentation in ${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
+add_custom_target(documentation_package
+    DEPENDS documentation
+    COMMENT "creating documentation package for ${PROJECT_PACKAGE_NAME}"
+    COMMAND ${CMAKE_COMMAND} -E tar "cfvz" "${PROJECT_NAME}-${LAYER_ALCHEMY_VERSION_STRING}_documentation.tgz" "${CMAKE_CURRENT_BINARY_DIR}/documentation"
+    COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_NAME}-${LAYER_ALCHEMY_VERSION_STRING}_documentation.tgz" "../"
+)
+
 install(
-    DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    DIRECTORY ${DOCUMENTATION_BUILD_DIR}
     DESTINATION ${CMAKE_INSTALL_PREFIX}
-    PATTERN "CmakeFiles" EXCLUDE
-    PATTERN "CMakeFiles" EXCLUDE
-    PATTERN "Makefile" EXCLUDE
-    PATTERN "cmake_install.cmake" EXCLUDE
 )

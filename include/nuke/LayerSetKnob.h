@@ -6,7 +6,8 @@
 
 #include "LayerSet.h"
 
-namespace LayerSet {
+namespace LayerAlchemy {
+namespace LayerSetKnob {
 
 static const char* LAYER_SET_KNOB_NAME = "layer_set";
 
@@ -65,4 +66,5 @@ void _updateLayerSetKnob(DD::Image::Op*, LayerSetKnobData&, ChannelSetMapType&, 
 void updateLayerSetKnob(DD::Image::Op*, LayerSetKnobData&, LayerCollection&, DD::Image::ChannelSet&);
 // main update function to update an Op's filtered LayerSetKnob
 void updateLayerSetKnob(DD::Image::Op*, LayerSetKnobData&, LayerCollection&, DD::Image::ChannelSet&, const CategorizeFilter&);
-}; //  LayerSet
+} //  End namespace LayerSetKnob
+} //  End namespace LayerAlchemy

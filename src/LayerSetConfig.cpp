@@ -8,7 +8,7 @@ YAML::Node _loadConfigFromPath(const string& path) {
     return config;
 }
 
-StrMapType _categoryMapFromConfig(YAML::Node& config) {
+StrMapType _categoryMapFromConfig(const YAML::Node& config) {
     StrMapType categoryMap;
     for (YAML::const_iterator it = config.begin(); it != config.end(); it++) {
         string categoryName = it->first.as<string>();
@@ -19,7 +19,7 @@ StrMapType _categoryMapFromConfig(YAML::Node& config) {
 }
 
 StrMapType loadConfigToMap(const string& yamlFilePath) {
-    YAML::Node config = _loadConfigFromPath(yamlFilePath);
+    const YAML::Node config = _loadConfigFromPath(yamlFilePath);
     StrMapType categoryMap = _categoryMapFromConfig(config);
     return categoryMap;
 }
