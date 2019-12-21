@@ -72,6 +72,9 @@ list(APPEND NUKE_PLUGINS GradeBeauty)
 add_library(GradeBeautyLayerSet SHARED ${PROJECT_NUKE_SRC_DIR}/GradeBeautyLayerSet.cpp)
 list(APPEND NUKE_PLUGINS GradeBeautyLayerSet)
 
+add_library(GradeBeautyLayer SHARED ${PROJECT_NUKE_SRC_DIR}/GradeBeautyLayer.cpp)
+list(APPEND NUKE_PLUGINS GradeBeautyLayer)
+
 foreach(PLUGIN ${NUKE_PLUGINS})
     set_target_properties(${PLUGIN} PROPERTIES PREFIX "")
     target_link_libraries(${PLUGIN} ${LAYERSET_LIBS} ${NUKE_LAYERSET_LIBS} ${LIB_DDIMAGE})

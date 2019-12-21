@@ -10,10 +10,8 @@ import constants
 
 def pluginAddPaths():
     """
-    This validates that configuration files are present and valid
-    and adds the icon and plugin directories to Nuke's pluginPath
+    adds the icon and plugin directories to Nuke's pluginPath
     """
-    validateConfigFileEnvironmentVariables()
     nuke.pluginAddPath(constants.LAYER_ALCHEMY_ICON_DIR)
     nuke.pluginAddPath(_getPluginDirForCurrentNukeVersion())
 
@@ -67,9 +65,9 @@ def _validateConfigFile(configFilePath):
     """
     if not os.path.isfile(configFilePath):
         raise ValueError('missing configuration file')
-    error = subprocess.call([constants.LAYER_ALCHEMY_CONFIGTESTER_BIN, configFilePath])
-    if error:
-        raise ValueError('invalid configuration file')
+    return subprocess.call(
+        [constants.LAYER_ALCHEMY_CONFIGTESTER_BIN, '--config', configFilePath, '--quiet']
+    )
 
 
 def validateConfigFileEnvironmentVariables():
@@ -83,4 +81,6 @@ def validateConfigFileEnvironmentVariables():
         if not configFile:
             configFile = os.path.join(constants.LAYER_ALCHEMY_CONFIGS_DIR, baseName)
             os.environ[envVarName] = configFile
-        _validateConfigFile(configFile)
+        error = _validateConfigFile(configFile)
+        if error:
+            raise ValueError('invalid configuration file {}'.format(configFile))

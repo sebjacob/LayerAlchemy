@@ -30,8 +30,12 @@ namespace LayerSet {
 namespace Utilities {
     void hard_copy(const DD::Image::Row& fromRow, int x, int r, DD::Image::ChannelSet channels, DD::Image::Row& toRow);
     float* hard_copy(const DD::Image::Row& fromRow, int x, int r, DD::Image::Channel channel, DD::Image::Row& toRow);
+    // centralized pixel engine code for Grade type plugins
+    void gradeChannelPixelEngine(const DD::Image::Row& in, int y, int x, int r, DD::Image::ChannelSet& channels, DD::Image::Row& aRow, float* A, float* B, float* G, bool reverse, bool clampBlack, bool clampWhite);
     // use to validate if a target layer the user selects is within the required color ranges
     void validateTargetLayerColorIndex(DD::Image::Op* t_op, const DD::Image::ChannelSet& targetLayer, unsigned minIndex, unsigned maxIndex);
+    // test float value for pow functions, NDK states that linux behaves badly for very large or very small exponent values.
+    float validateGammaValue(const float& gammaValue);
 } //  End namespace Utilities
 
 namespace Knobs {

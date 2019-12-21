@@ -16,7 +16,7 @@ LayerSetKnobData::~LayerSetKnobData()
 DD::Image::Knob* LayerSetKnob(DD::Image::Knob_Callback& f, LayerSetKnobData& pLayerSetKnobData)
 {
     DD::Image::Knob* layerSetKnob = DD::Image::Enumeration_knob(
-        f, &pLayerSetKnobData.selectedLayerSetIndex, pLayerSetKnobData.items, "layer_set", "layer set");
+        f, &pLayerSetKnobData.selectedLayerSetIndex, pLayerSetKnobData.items, LAYER_SET_KNOB_NAME, "layer set");
     Tooltip(f, "This selects a specific layer set for processing in this node");
     SetFlags(f, DD::Image::Knob::SAVE_MENU);
     SetFlags(f, DD::Image::Knob::ALWAYS_SAVE);

@@ -13,8 +13,8 @@ add_custom_target(documentation ALL
 add_custom_target(documentation_package
     DEPENDS documentation
     COMMENT "creating documentation package for ${PROJECT_PACKAGE_NAME}"
-    COMMAND ${CMAKE_COMMAND} -E tar "cfvz" "${PROJECT_NAME}-${LAYER_ALCHEMY_VERSION_STRING}_documentation.tgz" "${CMAKE_CURRENT_BINARY_DIR}/documentation"
-    COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_NAME}-${LAYER_ALCHEMY_VERSION_STRING}_documentation.tgz" "../"
+    COMMAND ${CMAKE_COMMAND} -E tar "cfvz" "${PROJECT_NAME}-${LAYER_ALCHEMY_VERSION_STRING}_documentation.tar.gz" "${CMAKE_CURRENT_BINARY_DIR}/documentation"
+    COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_NAME}-${LAYER_ALCHEMY_VERSION_STRING}_documentation.tar.gz" "../"
 )
 
 install(

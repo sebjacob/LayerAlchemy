@@ -11,13 +11,23 @@ This also runs at Nuke startup to make sure the config files are ok
 
 ConfigTester 😷 
 
-Simple executable to test if a yaml file can be loaded and a LayerMap object can be constructed
+Simple executable to validate yaml files
 
-Example usage: ConfigTester /path/to/config.yaml
+LayerAlchemy 0.9.0
+https://github.com/sebjacob/LayerAlchemy
+
+Example usage: 
+
+ConfigTester --config /path/to/config.yaml
+ConfigTester --config /path/to/config1.yaml /path/to/config2.yaml
+Usage: ./ConfigTester [options]
+Options:
+    --config               List of layer names to test (Required)
+    --quiet                disable terminal output, return code only
 ```
 
 ```bash
-./ConfigTester $LAYER_ALCHEMY_LAYER_CONFIG
+./ConfigTester --config $LAYER_ALCHEMY_LAYER_CONFIG
 ✅ LayerAlchemy : valid configuration file /path/to/layers.yaml
 ```
 

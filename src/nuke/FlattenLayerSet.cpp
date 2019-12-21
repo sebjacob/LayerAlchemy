@@ -102,6 +102,7 @@ void FlattenLayerSet::_validate(bool for_real)
         updateLayerSetKnob(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels, excludeLayerFilter);
     }
     set_out_channels(activeChannelSet());
+    info_.turn_on(m_targetLayer);
 }
 
 void FlattenLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelMask channels, Row& out)

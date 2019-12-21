@@ -22,8 +22,8 @@
 
 Lighters can use it with the light_group [LayerSet](core.md#layersets) to :
 
-* Tweak light group values and animations, (flicker matching)
-* Use two nodes, one in _multiply_ mode, and one in _stops_ mode to adhere to the exposure/gain decoupling
+* Tweak light group values or animations, (flicker matching)
+* Use two nodes, one in _multiply_ mode, and one in _stops_ mode to mimic to the exposure/gain decoupling
 * Send the values back to their cg application !
 
 Compositors:
@@ -42,6 +42,7 @@ Compositors:
 | target_layer | enumeration | selects which layer to pre-subtract layers from (if enabled) and add the modified layers to |
 | math_type | enumeration | selects the color knob preference
 | subtract | bool | controls pre-subtracting the [LayerSet](core.md#layersets) from the target layer |
+| black_clamp | bool | clamp negative values from all output layers |
 | reset values | button | resets all color knobs to their defaults |
 
 ## [PixelIop](https://learn.foundry.com/nuke/developers/11.3/ndkdevguide/2d/pixeliops.html) Knobs
@@ -61,7 +62,7 @@ Compositors:
 
 ### subtract
 The purpose of the subtract knob is to make sure that the output will always match the beauty render, even if 
-some layers are missing, yet included in the beauty render.
+some aov layers are missing in the beauty render. 
 
 This can happen, so it is enabled by default.
 
@@ -70,8 +71,23 @@ This can happen, so it is enabled by default.
 | enabled | the additive sum of the chosen [LayerSet](core.md#layersets) is subtracted from the target layer before recombining with this node's modifications | <p><i>this means any difference between the target layer and the render layers is kept in the final output</i></p>
 | disabled | bypasses aov/target layer pre-subtraction | _when this is disabled, it replaces the target layer with the result_
 
+!!! info "" 
+
+    If enabled and you completely remove layers, it's possible that you get negative values when
+    completely removing aovs AND subtracting. In this scenario, enable black_clamp 
+
+### black_clamp
+The purpose of the black_clamp knob is to make sure that the output pixels always are alaways positive.
+
+| value | what it does | notes |
+| ----- | ------------ | ----- |
+| enabled | no negative values are passed to the output | <p><i>in the odd case that you need to stop negative values this will do the job</i></p>
+| disabled | bypasses aov/target layer negative clamping | 
+
 
 ## Arnold 5 LayerSets
+
+LayerAlchemy includes arnold configurations by default
 
 Arnold can separate the beauty render components in various ways.
 

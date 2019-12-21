@@ -5,11 +5,6 @@
     GradeBeautyLayerSet provides a simple way to specifically grade multiple cg layers using a [LayerSet](core
     .md#layersets)  
     
-    it's a cross between :
-    
-     - [GradeLayerSet](GradeLayerSet.md)
-     - [GradeBeauty](GradeBeauty.md)
-     - [FlattenLayerSet](FlattenLayerSet.md) 
     
 
 Image processing math is exactly like the Nuke Grade node except that, you can grade multiple layers at the 
@@ -30,5 +25,5 @@ same time
 
 | mode name |  what it does |
 | --------- |  ------------ |
-| copy | outputs only the addition of modified layers to the target layer |
+| copy | outputs only the modified layers to the target layer (added together)|
 | add | this first subtracts all layers from the target layer, then adds each of them back

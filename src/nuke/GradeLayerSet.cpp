@@ -20,25 +20,6 @@ const char* const HELP =
         "invert the grade. This will do the opposite gamma correction followed by the "
         "opposite linear ramp.";
 
-// patch for linux alphas because the pow function behaves badly
-// for very large or very small exponent values.
-static bool LINUX = false;
-#ifdef __alpha
-LINUX = true;
-#endif
-
-float validateGammaValue(const float& gammaValue)
-{
-    if (LINUX) {
-        if (gammaValue < 0.008f) {
-            return 0.0f;
-        } else if (gammaValue > 125.0f) {
-            return 125.0f;
-        }
-    }
-    return gammaValue;
-}
-
 class GradeLayerSet : public PixelIop {
 
 private:
@@ -70,7 +51,7 @@ public:
     GradeLayerSet(Node* node);
     ~GradeLayerSet();
     // This function calculates and stores the grade algorithm's intermediate calculations
-    void precomputeValues();
+    bool precomputeValues();
     // channel set that contains all channels that are modified by the node
     ChannelSet activeChannelSet() const {return ChannelSet(m_lsKnobData.m_selectedChannels);}
 };
@@ -93,12 +74,9 @@ void GradeLayerSet::in_channels(int input, ChannelSet& mask) const {}
 
 void GradeLayerSet::_validate(bool for_real)
 {
-    bool change_zero = false;
-    precomputeValues();
-    if (change_zero) {
-        info_.black_outside(false);
-    }
     copy_info(); // this copies the input info to the output
+    bool changeZero = precomputeValues();
+    info_.black_outside(!changeZero);
     ChannelSet inChannels = info_.channels();
 
     if (validateLayerSetKnobUpdate(this, m_lsKnobData, LayerAlchemy::layerCollection, inChannels)) {
@@ -106,114 +84,34 @@ void GradeLayerSet::_validate(bool for_real)
     }
     set_out_channels(activeChannelSet());
 }
-void GradeLayerSet::precomputeValues()
-{
-    for (int chanIdx = 0; chanIdx < 3; chanIdx++) {
+
+bool GradeLayerSet::precomputeValues() {
+    bool changeZero = false;
+    for (unsigned int chanIdx = 0; chanIdx < 4; chanIdx++) {
         float a = whitepoint[chanIdx] - blackpoint[chanIdx];
         a = a ? (gain[chanIdx] - lift[chanIdx]) / a : 10000.0f;
         a *= multiply[chanIdx];
         float b = offset[chanIdx] + lift[chanIdx] - blackpoint[chanIdx] * a;
-        float g = validateGammaValue(gamma[chanIdx]);
+        float g = LayerAlchemy::Utilities::validateGammaValue(gamma[chanIdx]);
         A[chanIdx] = a;
         B[chanIdx] = b;
         G[chanIdx] = g;
+        if (a != 1.0f || b != 0.0f || g != 1.0f)
+        {
+            if (b)
+            {
+                changeZero = true;
+            }
+        }
     }
+    return changeZero;
 }
 
 void GradeLayerSet::pixel_engine(const Row& in, int y, int x, int r, ChannelMask inChannels, Row& out)
 {
     Row aRow(x, r);
-
-    map<Channel, float*> aovPtrIdxMap;
-    foreach(channel, inChannels)
-    {
-        LayerAlchemy::Utilities::hard_copy(in, x, r, channel, aRow);
-        aovPtrIdxMap[channel] = aRow.writable(channel);
-    }
-
-    foreach(channel, inChannels) {
-        unsigned chanIdx = colourIndex(channel);
-        const float* inAovValue = in[channel];
-        float* outAovValue = aovPtrIdxMap[channel];
-
-        float _A = A[chanIdx];
-        float _B = B[chanIdx];
-        float _G = G[chanIdx];
-
-        for (int X = x; X < r; X++)
-        {
-            float outPixel = inAovValue[X];
-
-            if (!reverse) {
-                if (_A != 1.0f || _B) {
-                    outPixel *= _A;
-                    outPixel += _B;
-                    }
-                if (clampWhite || clampBlack) {
-                    if (outPixel < 0.0f && clampBlack) { // clamp black
-                        outPixel = 0.0f;
-                    }
-                    if (outPixel > 1.0f && clampWhite) { // clamp white
-                        outPixel = 1.0f;
-                    }
-                }
-                if (_G <= 0) {
-                    if (outPixel < 1.0f) {
-                        outPixel = 0.0f;
-                    } else if (outPixel > 1.0f) {
-                        outPixel = INFINITY;
-                    }
-                } else if (_G != 1.0f) {
-                    float power = 1.0f / _G;
-                    if (LINUX & (outPixel <= 1e-6f && power > 1.0f)) {
-                        outPixel = 0.0f;
-                    } else if (outPixel < 1) {
-                        outPixel = powf(outPixel, power);
-                    } else {
-                        outPixel = (1.0f + outPixel - 1.0f) * power;
-                    }
-                }
-            }
-            if (reverse) { // Reverse gamma:
-                if (_G <= 0) {
-                    outPixel = outPixel > 0.0f ? 1.0f : 0.0f;
-                }
-                if (_G != 1.0f) {
-                    if (LINUX & (outPixel <= 1e-6f && _G > 1.0f)) {
-                        outPixel = 0.0f;
-                    } else if (outPixel < 1.0f) {
-                        outPixel = powf(outPixel, _G);
-                    } else {
-                        outPixel = 1.0f + (outPixel - 1.0f) * _G;
-                    }
-                }
-                // Reverse the linear part:
-                if (_A != 1.0f || _B) {
-                    float b = _B;
-                    float a = _A;
-                    if (a) {
-                        a = 1 / a;
-                    } else {
-                        a = 1.0f;
-                    }
-                    b = -b * a;
-                    outPixel = (outPixel * a) + b;
-                }
-            }
-            // clamp
-            if (clampWhite || clampBlack) {
-                if (outPixel < 0.0f && clampBlack)
-                {
-                    outPixel = 0.0f;
-                }
-                else if (outPixel > 1.0f && clampWhite)
-                {
-                    outPixel = 1.0f;
-                }
-            }
-            outAovValue[X] = outPixel;
-        }
-    }
+    ChannelSet channels = ChannelSet(inChannels);
+    LayerAlchemy::Utilities::gradeChannelPixelEngine(in, y, x, r, channels, aRow, A, B, G, reverse, clampBlack, clampWhite);
     LayerAlchemy::Utilities::hard_copy(aRow, x, r, inChannels, out);
 }
 
