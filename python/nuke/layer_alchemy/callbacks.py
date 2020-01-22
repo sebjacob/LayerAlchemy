@@ -1,61 +1,41 @@
 """LayerAlchemy callback module"""
 
-import os
 
 import nuke
-import nukescripts
 
-import utilities
 import constants
 
 
 def setupCallbacks():
     """
     Utility function to add all callbacks for plugins in this suite.
-    Adds knobChanged and autolabel callbacks
     """
-    for pluginName in constants.LAYER_ALCHEMY_PLUGINS.keys():
-        nuke.addKnobChanged(
-            lambda: knobChangedCommon(nuke.thisNode(), nuke.thisKnob()),
-            nodeClass=pluginName
-        )
-        nuke.addAutolabel(autolabel, nodeClass=pluginName)
+    for pluginName in constants.LAYER_ALCHEMY_PLUGIN_NAMES:
+        nuke.addAutolabel(_autolabel, nodeClass=pluginName)
+    pass
 
 
-def knobChangedCommon(node, knob):
-    """
-    Common knobChanged function for plugins in this suite
-    :param node: the Nuke node object
-    :type node: :class:`nuke.Node`
-    :param knob: the Nuke knob object
-    :type knob: :class:`nuke.Knob`
-    """
-    if knob.name() == 'docButton':
-        documentationIndex = utilities.getDocumentationIndexPath()
-        if not documentationIndex:
-            message = 'Local documentation is unavailable, please visit :\n\n<i>{website}</i>'.format(
-                website=constants.LAYER_ALCHEMY_URL)
-            nuke.message(message)
-            return
-        pluginDocFileName = '{0}.{1}'.format(node.Class(), 'html')
-        htmlFile = os.path.join(os.path.dirname(documentationIndex), pluginDocFileName)
-        outputPath = htmlFile if os.path.isfile(htmlFile) else documentationIndex
-        nukescripts.start(outputPath)
-
-
-def autolabel():
+def _autolabel():
     """
     Common autolabel function for plugins in this suite
+    :return: the formatted text to use as a label
+    :rtype: str
     """
 
     node = nuke.thisNode()
     nodeName = node.name()
-    layerSetKnob = node.knob('layer_set')
-    index = int(layerSetKnob.getValue())
-    layerSetName = layerSetKnob.enumName(index)
+    text = []
+    for knobName in ('layer_set', 'channels', 'maskChannelInput', 'unpremult'):
+        knob = node.knob(knobName)
+        if knob:
+            index = int(knob.getValue())
+            value = knob.enumName(index) if isinstance(knob, nuke.Enumeration_Knob) else knob.value()
+            if value and value != 'none':
+                text.append(value)
+
     node.knob('indicators').setValue(_getIndicatorValue(node))
-    if layerSetName:
-        return '{name}\n({layerSet})'.format(name=nodeName, layerSet=layerSetName)
+    if text:
+        return '{name}\n({layers})'.format(name=nodeName, layers=' / '.join(text))
     else:
         return nodeName
 
@@ -71,8 +51,11 @@ def _getIndicatorValue(node):
     indicators = 0
     knobs = node.allKnobs()
     mixKnob = node.knob('mix')
+    maskKnob = node.knob('maskChannelInput')
     if mixKnob and mixKnob.value() != 1:
         indicators += 16
+    if maskKnob and maskKnob.getValue() != 0:
+        indicators += 4
     if node.clones():
         indicators += 8
     if any(knob.isAnimated() for knob in knobs):

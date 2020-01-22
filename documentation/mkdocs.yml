@@ -17,6 +17,7 @@ nav :
     - Nuke plugins :
       - GradeBeauty.md
       - GradeBeautyLayerSet.md
+      - GradeBeautyLayer.md
       - GradeLayerSet.md
       - FlattenLayerSet.md
       - RemoveLayerSet.md

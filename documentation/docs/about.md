@@ -4,10 +4,13 @@
 | ---- | ---- | ----- | -------- |
 | Sébastien Jacob | author, designer | [email](mailto:sebjacobvfx@gmail.com) | [LinkedIn](https://www.linkedin.com/in/s%C3%A9bastien-jacob-3b05112/)
 
-!!! info "special thanks 👍, for their help in kick starting the very first builds goes to :"
+# special thanks 👍
 
-        - Jean-Christophe Morin
-        - Gregory Starck
+- Charles Fleche
+- Christian Morin
+- Mathieu Dupuis
+- Jean-Christophe Morin
+- Gregory Starck
         
 # Contributing
 

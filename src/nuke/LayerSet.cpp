@@ -72,8 +72,14 @@ namespace Knobs {
 
 DD::Image::Knob* createDocumentationButton(DD::Image::Knob_Callback& f)
 {
-    DD::Image::Knob* docButton = Button(f, "docButton", "documentation");
-    Tooltip(f, "<p>This will launch the default browser and load the included plugin documentation</p>");
+    const char* docButtonScript = 
+    "import layer_alchemy.documentation\n"
+    "qtWidget = layer_alchemy.documentation.displayDocumentation(node=nuke.thisNode())\n"
+    "if qtWidget:\n"
+    "    qtWidget.show()";
+
+    DD::Image::Knob* docButton = PyScript_knob(f, docButtonScript, "documentation");
+    Tooltip(f, "<p>This will display the included plugin documentation</p>");
     return docButton;
 }
 
@@ -135,6 +141,128 @@ void hard_copy(const DD::Image::Row& fromRow, int x, int r, DD::Image::ChannelSe
     {
       hard_copy(fromRow, x, r, channel, toRow);
     }
+}
+
+void gradeChannelPixelEngine(const DD::Image::Row& in, int y, int x, int r, DD::Image::ChannelSet& channels, DD::Image::Row& aRow, float* A, float* B, float* G, bool reverse, bool clampBlack, bool clampWhite)
+{
+    // patch for linux alphas because the pow function behaves badly
+    // for very large or very small exponent values.
+    static bool LINUX = false;
+    #ifdef __alpha
+    LINUX = true;
+    #endif
+
+
+    map<DD::Image::Channel, float*> aovPtrIdxMap;
+    foreach(channel, channels)
+    {
+        LayerAlchemy::Utilities::hard_copy(in, x, r, channel, aRow);
+        aovPtrIdxMap[channel] = aRow.writable(channel);
+    }
+
+    foreach(channel, channels) {
+        unsigned chanIdx = colourIndex(channel);
+        const float* inAovValue = in[channel];
+        float* outAovValue = aovPtrIdxMap[channel];
+
+        float _A = A[chanIdx];
+        float _B = B[chanIdx];
+        float _G = G[chanIdx];
+
+        for (int X = x; X < r; X++)
+        {
+            float outPixel = inAovValue[X];
+
+            if (!reverse) {
+                if (_A != 1.0f || _B) {
+                    outPixel *= _A;
+                    outPixel += _B;
+                    }
+                if (clampWhite || clampBlack) {
+                    if (outPixel < 0.0f && clampBlack) { // clamp black
+                        outPixel = 0.0f;
+                    }
+                    if (outPixel > 1.0f && clampWhite) { // clamp white
+                        outPixel = 1.0f;
+                    }
+                }
+                if (_G <= 0) {
+                    if (outPixel < 1.0f) {
+                        outPixel = 0.0f;
+                    } else if (outPixel > 1.0f) {
+                        outPixel = INFINITY;
+                    }
+                } else if (_G != 1.0f) {
+                    float power = 1.0f / _G;
+                    if (LINUX & (outPixel <= 1e-6f && power > 1.0f)) {
+                        outPixel = 0.0f;
+                    } else if (outPixel < 1) {
+                        outPixel = powf(outPixel, power);
+                    } else {
+                        outPixel = (1.0f + outPixel - 1.0f) * power;
+                    }
+                }
+            }
+            if (reverse) { // Reverse gamma:
+                if (_G <= 0) {
+                    outPixel = outPixel > 0.0f ? 1.0f : 0.0f;
+                }
+                if (_G != 1.0f) {
+                    if (LINUX & (outPixel <= 1e-6f && _G > 1.0f)) {
+                        outPixel = 0.0f;
+                    } else if (outPixel < 1.0f) {
+                        outPixel = powf(outPixel, _G);
+                    } else {
+                        outPixel = 1.0f + (outPixel - 1.0f) * _G;
+                    }
+                }
+                // Reverse the linear part:
+                if (_A != 1.0f || _B) {
+                    float b = _B;
+                    float a = _A;
+                    if (a) {
+                        a = 1 / a;
+                    } else {
+                        a = 1.0f;
+                    }
+                    b = -b * a;
+                    outPixel = (outPixel * a) + b;
+                }
+            }
+            // clamp
+            if (clampWhite || clampBlack) {
+                if (outPixel < 0.0f && clampBlack)
+                {
+                    outPixel = 0.0f;
+                }
+                else if (outPixel > 1.0f && clampWhite)
+                {
+                    outPixel = 1.0f;
+                }
+            }
+            outAovValue[X] = outPixel;
+        }
+    }
+}
+
+float validateGammaValue(const float& gammaValue) 
+{
+    static bool LINUX = false;
+    #ifdef __alpha
+    LINUX = true;
+    #endif
+    if (LINUX) 
+    {
+        if (gammaValue < 0.008f) 
+        {
+            return 0.0f;
+        } 
+        else if (gammaValue > 125.0f) 
+        {
+            return 125.0f;
+        }
+    }
+    return gammaValue;
 }
 } // End namespace Utilities
 } // End namespace LayerAlchemy

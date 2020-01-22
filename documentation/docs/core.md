@@ -22,9 +22,8 @@ as they will will be referenced throughout the documentation
 
     - limited mostly by the callback system to trigger behaviors.  
     - cannot be cloned in Nuke.
-    - internally, the algorithm is spread out across multiple nodes that must be managed.
-    - lots of knob setting python code, and workarounds are required.
-    - no direct image processing possible.
+    - internally, the algorithm is spread out across multiple Nuke nodes that must be managed.
+    - lots python and expression code, workarounds are required.
     - some knobs are c++ only.
     - In general, the fewer the nodes, the faster the comp.
 
