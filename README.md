@@ -40,16 +40,16 @@ The GradeBeauty design is purposely utilitarian and simple.
 GradeBeautyLayerSet provides a simple way to specifically grade multiple cg layers using a 
 [LayerSet](./documentation/docs/core.md#layersets)  
 
-it's a cross between :
-
- - [GradeLayerSet](./documentation/docs/GradeLayerSet.md)
- - [GradeBeauty](./documentation/docs/GradeBeauty.md)
- - [FlattenLayerSet](./documentation/docs/FlattenLayerSet.md) 
-
 Image processing math is exactly like the Nuke Grade node except that, you can grade multiple layers at the 
 same time
 
 ![GradeBeautyLayerSet](./documentation/docs/media/parameters/GradeBeautyLayerSet.png)
+
+## ![GradeBeautyLayerIcon](./icons/GradeBeautyLayer.png) [GradeBeautyLayer](./documentation/docs/GradeBeautyLayer.md)
+GradeBeautyLayer provides a simple way to specifically grade a cg layer and replace it in the beauty
+
+![GradeBeautyLayer](./documentation/docs/media/parameters/GradeBeautyLayer.png)
+
 
 ## ![FlattenLayerSetIcon](./icons/FlattenLayerSet.png) [FlattenLayerSet](./documentation/docs/FlattenLayerSet.md)
 FlattenLayerSet provides a simple way to merge additive [LayerSet](./documentation/docs/core.md#layersets) 

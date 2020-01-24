@@ -101,6 +101,7 @@ if(BUILD_APPS)
 
     add_executable(ConfigTester ${CMAKE_SOURCE_DIR}/src/ConfigTester.cpp)
     target_link_libraries(ConfigTester LayerSetCore LayerSetConfig)
+    add_dependencies(ConfigTester argparse)
     install(
         TARGETS LayerTester ConfigTester
         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
