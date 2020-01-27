@@ -285,9 +285,9 @@ void GradeBeauty::_validate(bool for_real)
         setKnobDefaultValue(this);
         _validate(true); // this will refresh the node UI in case the node was blank
     }
-
-    calculateLayerValues(m_lsKnobData.m_selectedChannels, m_valueMap);
-    set_out_channels(activeChannelSet());
+    ChannelSet activeChannels = activeChannelSet();
+    calculateLayerValues(activeChannels - m_targetLayer, m_valueMap);
+    set_out_channels(activeChannels);
     info_.turn_on(m_targetLayer);
 }
 
@@ -383,14 +383,13 @@ void GradeBeauty::beautyPixelEngine(const Row& in, int y, int x, int r, ChannelS
 
 void GradeBeauty::pixel_engine(const Row& in, int y, int x, int r, ChannelMask channels, Row& out)
 {
-
     ChannelSet inChannels = ChannelSet(channels);
-    ChannelSet activeChannels = activeChannelSet();
     Row aRow(x, r);
     bool isTargetLayer = m_targetLayer.intersection(inChannels).size() == m_targetLayer.size();
     if (isTargetLayer)
     {
-        channelPixelEngine(in, y, x, r, m_lsKnobData.m_selectedChannels, aRow);
+        ChannelSet activeChannels = activeChannelSet();
+        channelPixelEngine(in, y, x, r, activeChannels - m_targetLayer, aRow);
         beautyPixelEngine(in, y, x, r, activeChannels, aRow);
     } 
     else

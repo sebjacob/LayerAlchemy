@@ -1,7 +1,7 @@
 #pragma once
 #define LAYER_ALCHEMY_VERSION_MAJOR 0
 #define LAYER_ALCHEMY_VERSION_MINOR 9
-#define LAYER_ALCHEMY_VERSION_PATCH 0
+#define LAYER_ALCHEMY_VERSION_PATCH 1
 
 #include <string>
 
